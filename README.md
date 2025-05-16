@@ -1,6 +1,10 @@
 # Presidio FastAPI Service
 
-A secure and efficient FastAPI service for detecting Personally Identifiable Information (PII) in text using Microsoft's Presidio Analyzer.
+A secure, high-performance FastAPI service for detecting Personally Identifiable Information (PII) in text using Microsoft's Presidio Analyzer.
+
+[![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 
 ## Features
 
@@ -39,9 +43,11 @@ ALLOWED_ORIGINS=http://localhost:3000
 MIN_CONFIDENCE_SCORE=0.5
 ```
 
-## API Usage
+## API Reference
 
-### Analyze Text
+### Text Analysis Endpoints
+
+#### Single Text Analysis
 
 ```bash
 POST /analyze
@@ -73,6 +79,49 @@ Response:
 }
 ```
 
+#### Batch Text Analysis
+
+```bash
+POST /analyze/batch
+
+Request:
+{
+    "texts": [
+        "My name is John Doe",
+        "Contact me at john@example.com"
+    ],
+    "language": "en"
+}
+
+Response:
+{
+    "results": [
+        {
+            "entities": [
+                {
+                    "entity_type": "PERSON",
+                    "start": 11,
+                    "end": 19,
+                    "score": 0.85,
+                    "text": "John Doe"
+                }
+            ]
+        },
+        {
+            "entities": [
+                {
+                    "entity_type": "EMAIL_ADDRESS",
+                    "start": 13,
+                    "end": 28,
+                    "score": 1.0,
+                    "text": "john@example.com"
+                }
+            ]
+        }
+    ]
+}
+```
+
 ## Development
 
 To run the development server:
@@ -99,6 +148,39 @@ API documentation will be available at:
   - Strict-Transport-Security
   - Content-Security-Policy
 
+### Rate Limiting
+
+The API implements rate limiting with the following default settings:
+- 60 requests per minute per IP
+- Burst limit of 100 requests
+- 5-minute blocking period for burst limit violations
+
+Rate limit headers in responses:
+- `X-RateLimit-Limit`: Requests allowed per minute
+- `X-RateLimit-Remaining`: Remaining requests in the current window
+- `X-RateLimit-Reset`: Seconds until the current window resets
+
+### Security Features
+
+1. Request Rate Limiting
+   - Per-IP rate limiting
+   - Burst protection
+   - Automatic blocking for abuse
+
+2. Security Headers
+   - Content Security Policy (CSP)
+   - HSTS (HTTP Strict Transport Security)
+   - XSS Protection
+   - Frame Options
+   - Content Type Options
+   - Referrer Policy
+   - Permissions Policy
+
+3. Input Validation
+   - Maximum text length limits
+   - Language code validation
+   - JSON payload validation
+
 ## Monitoring
 
 The service includes built-in monitoring endpoints:
@@ -118,11 +200,22 @@ Response:
     "requests_by_path": {
         "/": 100,
         "/analyze": 1000,
-        "/health": 134
+        "/analyze/batch": 100,
+        "/health": 34
     },
     "average_response_time": 0.123,
-    "requests_in_last_minute": 45
+    "requests_in_last_minute": 45,
+    "error_rate": 0.001,
+    "error_counts": {
+        "400": 10,
+        "429": 5,
+        "500": 1
+    },
+    "suspicious_requests": {
+        "192.168.1.1": 2
+    }
 }
+```
 
 ## License
 
