@@ -119,8 +119,11 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RateLimiterMiddleware)
     
-    # Include API routes
-    app.include_router(router)
+    # Include API routes with the correct prefix
+    app.include_router(
+        router,
+        prefix=f"/api/{settings.API_VERSION}",
+    )
 
     return app
 
