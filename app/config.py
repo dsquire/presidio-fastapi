@@ -1,6 +1,7 @@
+"""Application configuration management."""
 import logging
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic_settings import BaseSettings
 
@@ -20,11 +21,11 @@ class Settings(BaseSettings):
         LOG_LEVEL (str): The logging level for the application.
         NLP_ENGINE_NAME (str): The name of the NLP engine (e.g., "spacy").
         SPACY_MODEL_EN (str): The Spacy model for English.
-        SPACY_MODEL_ES (Optional[str]): The optional Spacy model for Spanish.
+        SPACY_MODEL_ES (str | None): The optional Spacy model for Spanish.
         MAX_TEXT_LENGTH (int): Maximum allowed text length for analysis.
         ALLOWED_ORIGINS (str): Comma-separated string of allowed CORS origins.
         MIN_CONFIDENCE_SCORE (float): Minimum confidence score for PII detection.
-        ENTITY_MAPPING (Dict[str, List[str]]): Mapping of Presidio entities.
+        ENTITY_MAPPING (dict[str, list[str]]): Mapping of Presidio entities.
     """
     # API Version
     API_VERSION: str = "v1"
@@ -44,13 +45,13 @@ class Settings(BaseSettings):
     # NLP Configuration
     NLP_ENGINE_NAME: str = "spacy"
     SPACY_MODEL_EN: str = "en_core_web_lg"
-    SPACY_MODEL_ES: Optional[str] = None  # Optional Spanish language model
+    SPACY_MODEL_ES: str | None = None  # Optional Spanish language model
     MAX_TEXT_LENGTH: int = 102400
     ALLOWED_ORIGINS: str = ""
     MIN_CONFIDENCE_SCORE: float = 0.5
-
+    
     # Entity Mapping Configuration
-    ENTITY_MAPPING: Dict[str, List[str]] = {
+    ENTITY_MAPPING: dict[str, list[str]] = {
         "PERSON": ["PERSON", "PER"],
         "EMAIL_ADDRESS": ["EMAIL"],
         "PHONE_NUMBER": ["PHONE", "PHONE_NUMBER"],
@@ -60,27 +61,26 @@ class Settings(BaseSettings):
         "US_SSN": ["SSN"],
         "IP_ADDRESS": ["IP"],
         "US_DRIVER_LICENSE": ["DRIVER_LICENSE", "DL"],
-        "URL": ["URL", "URI"]
+        "URL": ["URL", "URI"],
     }
     
     @property
-    def cors_origins(self) -> List[str]:
-        """Parses and validates CORS origins from ALLOWED_ORIGINS.
+    def cors_origins(self) -> list[str]:
+        """Get the list of allowed CORS origins.
 
         Returns:
-            A list of validated origin strings. Returns an empty list if
-            ALLOWED_ORIGINS is empty or "*", which FastAPI interprets
-            appropriately for CORS configuration.
+            A list of allowed CORS origins split from the ALLOWED_ORIGINS setting.
+            If no origins are configured, returns an empty list.
         """
-        if not self.ALLOWED_ORIGINS:
-            return []
-        if self.ALLOWED_ORIGINS == "*":
-            return []  # FastAPI interprets empty list as no origins allowed
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
-
+        return [
+            origin.strip()
+            for origin in self.ALLOWED_ORIGINS.split(",")
+            if origin.strip()
+        ]
+    
     @property
-    def nlp_configuration(self) -> Dict[str, Any]:
-        """Constructs the NLP configuration for Presidio Analyzer.
+    def nlp_configuration(self) -> dict[str, Any]:
+        """Construct the NLP configuration for Presidio Analyzer.
 
         This configuration includes the NLP engine name and a list of models
         with their language codes, model names, and entity mappings.
@@ -88,14 +88,25 @@ class Settings(BaseSettings):
 
         Returns:
             A dictionary containing the NLP configuration suitable for
-            NlpEngineProvider.
+            NlpEngineProvider with the following structure:
+            {
+                "nlp_engine_name": str,
+                "models": [
+                    {
+                        "lang_code": str,
+                        "model_name": str,
+                        "model_to_presidio_entity_mapping": dict
+                    },
+                    ...
+                ]
+            }
         """
         models = [
             {
                 "lang_code": "en",
                 "model_name": self.SPACY_MODEL_EN,
-                "model_to_presidio_entity_mapping": self.ENTITY_MAPPING
-            }
+                "model_to_presidio_entity_mapping": self.ENTITY_MAPPING,
+            },
         ]
         
         # Add Spanish model if configured
@@ -103,23 +114,22 @@ class Settings(BaseSettings):
             models.append({
                 "lang_code": "es",
                 "model_name": self.SPACY_MODEL_ES,
-                "model_to_presidio_entity_mapping": self.ENTITY_MAPPING
+                "model_to_presidio_entity_mapping": self.ENTITY_MAPPING,
             })
         
         return {
             "nlp_engine_name": self.NLP_ENGINE_NAME,
-            "models": models
+            "models": models,
         }
     
     @property
     def log_level(self) -> int:
-        """Converts the string log level from settings to a logging constant.
-
-        Defaults to logging.INFO if the configured LOG_LEVEL is invalid.
+        """Convert the string log level from settings to a logging constant.
 
         Returns:
             The integer value of the logging level (e.g., logging.INFO,
-            logging.DEBUG).
+            logging.DEBUG). Defaults to logging.INFO if the configured
+            LOG_LEVEL is invalid.
         """
         return getattr(logging, self.LOG_LEVEL.upper(), logging.INFO)
 
@@ -133,9 +143,10 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
 
+
 @lru_cache()
 def get_settings() -> Settings:
-    """Creates and caches a Settings instance.
+    """Create and cache a Settings instance.
 
     Uses lru_cache to ensure that the Settings object is created only once,
     improving performance by avoiding repeated file reads and environment
@@ -145,5 +156,6 @@ def get_settings() -> Settings:
         A cached instance of the Settings class.
     """
     return Settings()
+
 
 settings = get_settings()

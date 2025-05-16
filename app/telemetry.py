@@ -1,7 +1,8 @@
 """OpenTelemetry configuration and utilities."""
 import logging
+from collections.abc import Callable
 from functools import lru_cache
-from typing import Callable, Optional
+from typing import Any
 
 from fastapi import FastAPI
 from opentelemetry import trace
@@ -14,6 +15,7 @@ from opentelemetry.trace.status import Status, StatusCode
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
 
 @lru_cache()
 def setup_telemetry(app: FastAPI) -> None:
@@ -47,20 +49,41 @@ def setup_telemetry(app: FastAPI) -> None:
         logger.info("OpenTelemetry instrumentation configured successfully")
         
     except Exception as e:
-        logger.error(f"Failed to configure OpenTelemetry: {str(e)}")
+        logger.error("Failed to configure OpenTelemetry: %s", str(e))
         logger.exception(e)
 
-def trace_method(name: Optional[str] = None) -> Callable:
-    """Decorator to add tracing to methods.
+
+def trace_method(name: str | None = None) -> Callable:
+    """Decorator to add OpenTelemetry tracing to a method.
     
     Args:
-        name: Optional name for the span. Defaults to method name.
+        name: Optional name for the span. If not provided, the function name is used.
         
     Returns:
-        Decorated function with tracing.
+        A decorator function that adds tracing to the decorated method.
     """
     def decorator(func: Callable) -> Callable:
-        async def wrapper(*args, **kwargs):
+        """Wrap the function with tracing.
+        
+        Args:
+            func: The function to be wrapped with tracing.
+            
+        Returns:
+            The wrapped function with tracing added.
+        """
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            """Execute the wrapped function with tracing.
+            
+            Args:
+                *args: Positional arguments to pass to the wrapped function.
+                **kwargs: Keyword arguments to pass to the wrapped function.
+                
+            Returns:
+                The result of the wrapped function.
+                
+            Raises:
+                Any exception that the wrapped function may raise.
+            """
             # Get current tracer
             tracer = trace.get_tracer(__name__)
             span_name = name or func.__name__

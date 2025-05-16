@@ -1,5 +1,9 @@
+"""Routes module for the Presidio FastAPI API.
+
+This module contains all the route handlers for the API endpoints.
+"""
 import logging
-from typing import Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Request, status
 
@@ -17,11 +21,11 @@ router = APIRouter(prefix=f"/api/{settings.API_VERSION}")
     summary="Analyze text for PII entities",
     response_description="List of detected PII entities",
     status_code=status.HTTP_200_OK,
-    tags=["Analyzer"]
+    tags=["Analyzer"],
 )
 @trace_method("analyze_text")
 async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse:
-    """Analyzes text for personally identifiable information (PII).
+    """Analyze text for personally identifiable information (PII).
 
     This endpoint uses Microsoft Presidio to detect PII entities in the
     provided text.
@@ -52,43 +56,43 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
     try:
         analyzer = req.app.state.analyzer
         if not analyzer:
-            logger.error("Analyzer service not available")
+            logger.exception("Analyzer service not available")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Analyzer service not available"
+                detail="Analyzer service not available",
             )
-            
-        logger.info(f"Analyzing text in {request.language}")
+
+        logger.info("Analyzing text in %s", request.language)
         results = analyzer.analyze(
             text=request.text,
             language=request.language,
         )
-        
+
         entities = [
             {
                 "entity_type": result.entity_type,
                 "start": result.start,
                 "end": result.end,
                 "score": result.score,
-                "text": request.text[result.start:result.end]
+                "text": request.text[result.start:result.end],
             }
             for result in results
         ]
-        
-        logger.info(f"Found {len(entities)} entities")
+
+        logger.info("Found %d entities", len(entities))
         return AnalyzeResponse(entities=entities)
-        
+
     except ValueError as e:
-        logger.error(f"Invalid request: {str(e)}")
+        logger.error("Invalid request: %s", str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid request: {str(e)}"
+            detail=f"Invalid request: {str(e)}",
         ) from e
     except Exception as e:
         logger.exception("Unexpected error during analysis")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error occurred"
+            detail="Internal server error occurred",
         ) from e
 
 @router.post(
@@ -97,11 +101,11 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
     summary="Analyze multiple texts for PII entities",
     response_description="List of analysis results",
     status_code=status.HTTP_200_OK,
-    tags=["Analyzer"]
+    tags=["Analyzer"],
 )
 @trace_method("analyze_batch")
 async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnalyzeResponse:
-    """Analyzes multiple texts for personally identifiable information (PII).
+    """Analyze multiple texts for personally identifiable information (PII).
 
     This endpoint uses Microsoft Presidio to detect PII entities in a batch
     of texts provided in the request.
@@ -130,13 +134,12 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
     try:
         analyzer = req.app.state.analyzer
         if not analyzer:
-            logger.error("Analyzer service not available")
+            logger.exception("Analyzer service not available")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Analyzer service not available"
+                detail="Analyzer service not available",
             )
-        
-        # Process each text
+
         results = []
         for text in request.texts:
             try:
@@ -144,32 +147,32 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
                     text=text,
                     language=request.language,
                 )
-                
+
                 entities = [
                     {
                         "entity_type": result.entity_type,
                         "start": result.start,
                         "end": result.end,
                         "score": result.score,
-                        "text": text[result.start:result.end]
+                        "text": text[result.start:result.end],
                     }
                     for result in analyzed
                 ]
-                
+
                 results.append(AnalyzeResponse(entities=entities))
-                
+
             except Exception as e:
-                logger.error(f"Error analyzing text: {str(e)}")
+                logger.exception("Error analyzing text: %s", str(e))
                 results.append(AnalyzeResponse(entities=[]))
-        
-        logger.info(f"Processed {len(results)} texts in batch")
+
+        logger.info("Processed %d texts in batch", len(results))
         return BatchAnalyzeResponse(results=results)
-        
+
     except Exception as e:
         logger.exception("Unexpected error during batch analysis")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error occurred"
+            detail="Internal server error occurred",
         ) from e
 
 @router.get(
@@ -177,11 +180,11 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
     summary="Health check endpoint",
     response_description="Service health status",
     status_code=status.HTTP_200_OK,
-    tags=["Monitoring"]
+    tags=["Monitoring"],
 )
 @trace_method("health_check")
-async def health_check():
-    """Checks the health status of the service.
+async def health_check() -> Dict[str, str]:
+    """Check the health status of the service.
 
     Returns:
         A dictionary indicating the service health status.
@@ -194,11 +197,11 @@ async def health_check():
     summary="Service metrics",
     response_description="Application metrics and statistics",
     status_code=status.HTTP_200_OK,
-    tags=["Monitoring"]
+    tags=["Monitoring"],
 )
 @trace_method("metrics")
-async def metrics(request: Request):
-    """Retrieves application metrics and statistics.
+async def metrics(request: Request) -> Dict[str, Any]:
+    """Get application metrics and statistics.
 
     Args:
         request: FastAPI request object, used to access the
@@ -212,11 +215,11 @@ async def metrics(request: Request):
         HTTPException: If the metrics middleware is not properly configured
             or found in the application state.
     """
-    metrics_middleware: Optional[MetricsMiddleware] = getattr(request.app.state, "metrics", None)
+    metrics_middleware: MetricsMiddleware | None = getattr(request.app.state, "metrics", None)
     if not isinstance(metrics_middleware, MetricsMiddleware):
-        logger.error("Metrics middleware not configured")
+        logger.exception("Metrics middleware not configured")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Metrics middleware not configured"
+            detail="Metrics middleware not configured",
         )
     return metrics_middleware.get_metrics()

@@ -3,7 +3,7 @@ import asyncio
 import logging
 import time
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict
 
 from fastapi import Request, Response, status
@@ -53,17 +53,18 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         client_ip = request.client.host
-        now = time.time()
+        now = datetime.now(timezone.utc)
+        now_ts = now.timestamp()
         
         # Check if IP is blocked
         if client_ip in self.blocked_ips:
-            if datetime.now() < self.blocked_ips[client_ip]:
+            if now < self.blocked_ips[client_ip]:
+                retry_after = int((self.blocked_ips[client_ip] - now).total_seconds())
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={
                         "detail": "IP address blocked due to rate limit violation",
-                        "retry_after": int((self.blocked_ips[client_ip] - 
-                                            datetime.now()).total_seconds())
+                        "retry_after": retry_after,
                     }
                 )
             else:
@@ -73,34 +74,35 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             # Clean old requests
             self.requests[client_ip] = [
                 req_time for req_time in self.requests[client_ip]
-                if now - req_time < 60
+                if now_ts - req_time < 60
             ]
             
             # Check burst limit
             if len(self.requests[client_ip]) >= self.burst_limit:
-                block_until = datetime.now() + timedelta(seconds=self.block_duration)
+                block_until = now + timedelta(seconds=self.block_duration)
                 self.blocked_ips[client_ip] = block_until
-                logger.warning(f"IP {client_ip} blocked for burst limit violation")
+                logger.warning("IP %s blocked for burst limit violation", client_ip)
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={
                         "detail": "Too many requests - IP blocked",
-                        "retry_after": self.block_duration
+                        "retry_after": self.block_duration,
                     }
                 )
             
             # Check rate limit
             if len(self.requests[client_ip]) >= self.requests_per_minute:
+                retry_after = int(60 - (now_ts - self.requests[client_ip][0]))
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={
                         "detail": "Too many requests",
-                        "retry_after": int(60 - (now - self.requests[client_ip][0]))
+                        "retry_after": retry_after,
                     }
                 )
             
             # Record request
-            self.requests[client_ip].append(now)
+            self.requests[client_ip].append(now_ts)
         
         # Process request
         response = await call_next(request)
@@ -110,7 +112,9 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Remaining"] = str(
             self.requests_per_minute - len(self.requests[client_ip])
         )
-        response.headers["X-RateLimit-Reset"] = str(int(now - self.requests[client_ip][0]))
+        response.headers["X-RateLimit-Reset"] = str(
+            int(now_ts - self.requests[client_ip][0])
+        )
         
         return response
 
@@ -140,7 +144,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         return any(pattern in path or pattern in query for pattern in suspicious_patterns)
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        start_time = time.time()
+        start_time = time.monotonic()  # Use monotonic for duration measurements
         
         # Check for suspicious activity
         if self._is_suspicious(request):
@@ -149,7 +153,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         
         try:
             response = await call_next(request)
-            duration = time.time() - start_time
+            duration = time.monotonic() - start_time
             
             async with self._lock:
                 self.requests_count += 1
@@ -190,5 +194,5 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             "requests_in_last_minute": len(self.response_times),
             "error_rate": round(error_rate, 3),
             "error_counts": dict(self.error_counts),
-            "suspicious_requests": dict(self.suspicious_requests)
+            "suspicious_requests": dict(self.suspicious_requests),
         }

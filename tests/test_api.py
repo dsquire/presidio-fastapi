@@ -1,31 +1,47 @@
 """API endpoint tests."""
+from http import HTTPStatus
+
 from fastapi.testclient import TestClient
 
 
-def test_root_endpoint(client: TestClient):
-    """Test the root endpoint returns correct status."""
+def test_root_endpoint(client: TestClient) -> None:
+    """Test the root endpoint returns correct status.
+    
+    Args:
+        client: FastAPI test client
+    """
     response = client.get("/")
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     data = response.json()
     assert data["status"] == "ok"
 
-def test_health_check(client: TestClient):
-    """Test the health check endpoint."""
+
+def test_health_check(client: TestClient) -> None:
+    """Test the health check endpoint.
+    
+    Args:
+        client: FastAPI test client
+    """
     response = client.get("/health")
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     assert response.json()["status"] == "healthy"
 
-def test_analyze_endpoint_success(client: TestClient):
-    """Test successful PII analysis."""
+
+def test_analyze_endpoint_success(client: TestClient) -> None:
+    """Test successful PII analysis.
+    
+    Args:
+        client: FastAPI test client
+    """
     test_text = "My name is John Doe and my email is john@example.com"
     response = client.post(
         "/analyze",
         json={
             "text": test_text,
-            "language": "en"
-        }
+            "language": "en",
+        },
     )
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     data = response.json()
     assert "entities" in data
     assert len(data["entities"]) > 0
@@ -34,24 +50,29 @@ def test_analyze_endpoint_success(client: TestClient):
     assert "PERSON" in entity_types
     assert "EMAIL_ADDRESS" in entity_types
 
-def test_analyze_endpoint_validation(client: TestClient):
-    """Test input validation for analyze endpoint."""
+
+def test_analyze_endpoint_validation(client: TestClient) -> None:
+    """Test input validation for analyze endpoint.
+    
+    Args:
+        client: FastAPI test client
+    """
     # Test empty text
     response = client.post(
         "/analyze",
         json={
             "text": "",
-            "language": "en"
-        }
+            "language": "en",
+        },
     )
-    assert response.status_code == 422
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     # Test invalid language code
     response = client.post(
         "/analyze",
         json={
             "text": "Some text",
-            "language": "invalid"
-        }
+            "language": "invalid",
+        },
     )
-    assert response.status_code == 422
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
