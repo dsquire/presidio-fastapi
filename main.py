@@ -14,7 +14,11 @@ load_dotenv()
 NLP_ENGINE_NAME = os.getenv("NLP_ENGINE_NAME", "spacy")
 SPACY_MODEL_EN = os.getenv("SPACY_MODEL_EN", "en_core_web_lg")
 MAX_TEXT_LENGTH = int(os.getenv("MAX_TEXT_LENGTH", "102400"))
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+# Default to a secure setting (empty list) if no origins are specified
+ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "")
+# Parse allowed origins - if '*' is provided, convert to [] which FastAPI interprets as allowing no origins
+# This forces explicit configuration of allowed origins in production
+ALLOWED_ORIGINS = [] if ALLOWED_ORIGINS_STR == "*" else [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") if origin.strip()]
 MIN_CONFIDENCE_SCORE = float(os.getenv("MIN_CONFIDENCE_SCORE", "0.5"))
 
 # Initialize FastAPI app with metadata
@@ -24,13 +28,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS middleware with configuration from environment
+# Add CORS middleware with secure configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Only set allow_credentials=True when specific origins are defined
+    allow_credentials=len(ALLOWED_ORIGINS) > 0,
+    # Restrict to specific HTTP methods needed rather than allowing all
+    allow_methods=["GET", "POST", "OPTIONS"],
+    # Specify only the headers you need instead of "*"
+    allow_headers=["Content-Type", "Authorization"],
+    # Add additional security with max_age
+    max_age=86400,  # 24 hours
 )
 
 # Initialize the analyzer engine with configuration from environment
