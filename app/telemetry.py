@@ -3,7 +3,7 @@
 import logging
 from collections.abc import Awaitable, Callable
 from functools import lru_cache, wraps
-from typing import Any, ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar
 
 from fastapi import FastAPI
 from opentelemetry import trace
@@ -57,7 +57,9 @@ def setup_telemetry(app: FastAPI) -> None:
         logger.exception(e)
 
 
-def trace_method(name: str | None = None) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+def trace_method(
+    name: str | None = None,
+) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
     """Decorator to add OpenTelemetry tracing to an async method.
 
     Args:
