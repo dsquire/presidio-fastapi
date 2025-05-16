@@ -1,6 +1,7 @@
 """API endpoint tests."""
 from fastapi.testclient import TestClient
 
+
 def test_root_endpoint(client: TestClient):
     """Test the root endpoint returns correct status."""
     response = client.get("/")

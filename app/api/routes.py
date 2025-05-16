@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request, status
-from app.models import AnalyzeRequest, AnalyzeResponse, BatchAnalyzeRequest, BatchAnalyzeResponse
-from app.middleware import MetricsMiddleware
-from app.telemetry import trace_method
-from app.config import settings
-from typing import Optional
 import logging
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Request, status
+
+from app.config import settings
+from app.middleware import MetricsMiddleware
+from app.models import AnalyzeRequest, AnalyzeResponse, BatchAnalyzeRequest, BatchAnalyzeResponse
+from app.telemetry import trace_method
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix=f"/api/{settings.API_VERSION}")

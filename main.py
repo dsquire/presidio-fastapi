@@ -1,10 +1,12 @@
 """Main application module."""
 import logging
-from fastapi import FastAPI, Request
+
+from fastapi import FastAPI
+
 from app.api.routes import router
+from app.config import settings
 from app.services.analyzer import get_analyzer
 from app.telemetry import setup_telemetry
-from app.config import settings
 
 # Configure logging
 logging.basicConfig(level=settings.log_level)

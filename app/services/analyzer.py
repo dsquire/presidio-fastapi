@@ -1,7 +1,9 @@
 import logging
 from functools import lru_cache
+
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
+
 from app.config import settings
 
 logger = logging.getLogger(__name__)

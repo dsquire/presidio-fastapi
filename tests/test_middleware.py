@@ -1,6 +1,8 @@
 """Test middleware functionality."""
 import time
+
 from fastapi.testclient import TestClient
+
 
 def test_security_headers(client: TestClient):
     """Test security headers are added to responses."""

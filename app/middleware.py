@@ -1,16 +1,14 @@
 """Custom middleware for the application."""
-import time
-from typing import Callable, Dict
-from collections import defaultdict
 import asyncio
 import logging
-from fastapi import Request, Response, status
-from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.responses import JSONResponse
-import hashlib
-import hmac
-import secrets
+import time
+from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Callable, Dict
+
+from fastapi import Request, Response, status
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +62,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={
                         "detail": "IP address blocked due to rate limit violation",
-                        "retry_after": int((self.blocked_ips[client_ip] - datetime.now()).total_seconds())
+                        "retry_after": int((self.blocked_ips[client_ip] - 
+                                            datetime.now()).total_seconds())
                     }
                 )
             else:
@@ -166,7 +165,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             
             return response
             
-        except Exception as e:
+        except Exception:
             logger.exception("Error processing request")
             self.error_counts[500] += 1
             raise

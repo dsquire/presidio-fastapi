@@ -1,14 +1,16 @@
 """OpenTelemetry configuration and utilities."""
-from functools import lru_cache
 import logging
+from functools import lru_cache
+from typing import Callable, Optional
+
+from fastapi import FastAPI
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace.status import Status, StatusCode
-from fastapi import FastAPI, Request
-from typing import Optional, Callable
+
 from app.config import settings
 
 logger = logging.getLogger(__name__)
