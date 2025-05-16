@@ -6,6 +6,26 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    """Manages application settings using Pydantic BaseSettings.
+
+    Settings are loaded from environment variables and a .env file.
+
+    Attributes:
+        API_VERSION (str): The version of the API.
+        OTLP_ENDPOINT (str): The OTLP endpoint for OpenTelemetry.
+        OTLP_SECURE (bool): Whether to use a secure connection for OTLP.
+        REQUESTS_PER_MINUTE (int): Allowed requests per minute for rate limiting.
+        BURST_LIMIT (int): Burst limit for rate limiting.
+        BLOCK_DURATION (int): Duration in seconds to block IPs exceeding limits.
+        LOG_LEVEL (str): The logging level for the application.
+        NLP_ENGINE_NAME (str): The name of the NLP engine (e.g., "spacy").
+        SPACY_MODEL_EN (str): The Spacy model for English.
+        SPACY_MODEL_ES (Optional[str]): The optional Spacy model for Spanish.
+        MAX_TEXT_LENGTH (int): Maximum allowed text length for analysis.
+        ALLOWED_ORIGINS (str): Comma-separated string of allowed CORS origins.
+        MIN_CONFIDENCE_SCORE (float): Minimum confidence score for PII detection.
+        ENTITY_MAPPING (Dict[str, List[str]]): Mapping of Presidio entities.
+    """
     # API Version
     API_VERSION: str = "v1"
     
@@ -45,7 +65,13 @@ class Settings(BaseSettings):
     
     @property
     def cors_origins(self) -> List[str]:
-        """Parse and validate CORS origins."""
+        """Parses and validates CORS origins from ALLOWED_ORIGINS.
+
+        Returns:
+            A list of validated origin strings. Returns an empty list if
+            ALLOWED_ORIGINS is empty or "*", which FastAPI interprets
+            appropriately for CORS configuration.
+        """
         if not self.ALLOWED_ORIGINS:
             return []
         if self.ALLOWED_ORIGINS == "*":
@@ -54,7 +80,16 @@ class Settings(BaseSettings):
 
     @property
     def nlp_configuration(self) -> Dict[str, Any]:
-        """Get NLP configuration with entity mapping."""
+        """Constructs the NLP configuration for Presidio Analyzer.
+
+        This configuration includes the NLP engine name and a list of models
+        with their language codes, model names, and entity mappings.
+        The Spanish model is included only if SPACY_MODEL_ES is configured.
+
+        Returns:
+            A dictionary containing the NLP configuration suitable for
+            NlpEngineProvider.
+        """
         models = [
             {
                 "lang_code": "en",
@@ -78,16 +113,37 @@ class Settings(BaseSettings):
     
     @property
     def log_level(self) -> int:
-        """Convert string log level to logging constant."""
+        """Converts the string log level from settings to a logging constant.
+
+        Defaults to logging.INFO if the configured LOG_LEVEL is invalid.
+
+        Returns:
+            The integer value of the logging level (e.g., logging.INFO,
+            logging.DEBUG).
+        """
         return getattr(logging, self.LOG_LEVEL.upper(), logging.INFO)
 
     class Config:
+        """Pydantic configuration class for Settings.
+
+        Attributes:
+            env_file (str): The name of the environment file to load (e.g., ".env").
+            case_sensitive (bool): Whether environment variable names are case-sensitive.
+        """
         env_file = ".env"
         case_sensitive = True
 
 @lru_cache()
 def get_settings() -> Settings:
-    """Create cached settings instance."""
+    """Creates and caches a Settings instance.
+
+    Uses lru_cache to ensure that the Settings object is created only once,
+    improving performance by avoiding repeated file reads and environment
+    variable lookups.
+
+    Returns:
+        A cached instance of the Settings class.
+    """
     return Settings()
 
 settings = get_settings()

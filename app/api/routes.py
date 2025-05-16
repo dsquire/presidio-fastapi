@@ -21,31 +21,33 @@ router = APIRouter(prefix=f"/api/{settings.API_VERSION}")
 )
 @trace_method("analyze_text")
 async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse:
-    """Analyze text for personally identifiable information (PII).
-    
-    This endpoint uses Microsoft Presidio to detect PII entities in the provided text.
-    
+    """Analyzes text for personally identifiable information (PII).
+
+    This endpoint uses Microsoft Presidio to detect PII entities in the
+    provided text.
+
     Args:
-        request (AnalyzeRequest): The request body containing text to analyze.
-            Contains fields:
-            - text: The input text to analyze
-            - language: Two-letter language code (default: "en")
-        req (Request): FastAPI request object to access application state.
-        
+        request: The request body containing text to analyze.
+            It includes the following fields:
+            - text (str): The input text to analyze.
+            - language (str): Two-letter language code (default: "en").
+        req: FastAPI request object to access application state,
+            specifically the Presidio analyzer instance.
+
     Returns:
-        AnalyzeResponse: Contains list of detected PII entities.
-            Each entity has:
-            - entity_type: Type of PII detected
-            - start: Starting character position
-            - end: Ending character position
-            - score: Confidence score
-            - text: The matched text
-            
+        An AnalyzeResponse object containing a list of detected PII entities.
+        Each entity includes:
+        - entity_type (str): Type of PII detected.
+        - start (int): Starting character position.
+        - end (int): Ending character position.
+        - score (float): Confidence score.
+        - text (str): The matched text.
+
     Raises:
-        HTTPException: 
-            - 400: Invalid input parameters
-            - 503: Analyzer service unavailable
-            - 500: Unexpected error during analysis
+        HTTPException:
+            - 400 (Bad Request): If input parameters are invalid.
+            - 503 (Service Unavailable): If the analyzer service is not available.
+            - 500 (Internal Server Error): For unexpected errors during analysis.
     """
     try:
         analyzer = req.app.state.analyzer
@@ -99,28 +101,31 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
 )
 @trace_method("analyze_batch")
 async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnalyzeResponse:
-    """Analyze multiple texts for personally identifiable information (PII).
-    
-    This endpoint uses Microsoft Presidio to detect PII entities in multiple texts.
-    
+    """Analyzes multiple texts for personally identifiable information (PII).
+
+    This endpoint uses Microsoft Presidio to detect PII entities in a batch
+    of texts provided in the request.
+
     Args:
-        request (BatchAnalyzeRequest): The request body containing texts to analyze.
-            Contains fields:
-            - texts: List of input texts to analyze
-            - language: Two-letter language code (default: "en")
-        req (Request): FastAPI request object to access application state.
-        
+        request: The request body containing texts to analyze.
+            It includes the following fields:
+            - texts (List[str]): A list of input texts to analyze.
+            - language (str): Two-letter language code (default: "en").
+        req: FastAPI request object to access application state,
+            specifically the Presidio analyzer instance.
+
     Returns:
-        BatchAnalyzeResponse: Contains analysis results for each text.
-            Each result has:
-            - entities: List of detected PII entities
-            - cached: Whether the result was from cache
-        
+        A BatchAnalyzeResponse object containing analysis results for each text.
+        Each result includes:
+        - entities (List[dict]): List of detected PII entities for that text.
+        - cached (bool): Whether the result was from cache (Note: caching not
+          explicitly implemented in this snippet for batch items).
+
     Raises:
-        HTTPException: 
-            - 400: Invalid input parameters
-            - 503: Analyzer service unavailable
-            - 500: Unexpected error during analysis
+        HTTPException:
+            - 400 (Bad Request): If input parameters are invalid.
+            - 503 (Service Unavailable): If the analyzer service is not available.
+            - 500 (Internal Server Error): For unexpected errors during analysis.
     """
     try:
         analyzer = req.app.state.analyzer
@@ -176,10 +181,11 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
 )
 @trace_method("health_check")
 async def health_check():
-    """Check the health status of the service.
-    
+    """Checks the health status of the service.
+
     Returns:
-        dict: Health status information
+        A dictionary indicating the service health status.
+        Example: {"status": "healthy"}
     """
     return {"status": "healthy"}
 
@@ -192,16 +198,19 @@ async def health_check():
 )
 @trace_method("metrics")
 async def metrics(request: Request):
-    """Get application metrics and statistics.
-    
+    """Retrieves application metrics and statistics.
+
     Args:
-        request (Request): FastAPI request object
-        
+        request: FastAPI request object, used to access the
+            metrics middleware from the application state.
+
     Returns:
-        dict: Metrics including request counts and response times
-        
+        A dictionary containing various metrics, such as request counts
+        and response times, as provided by the MetricsMiddleware.
+
     Raises:
-        HTTPException: If metrics middleware is not properly configured
+        HTTPException: If the metrics middleware is not properly configured
+            or found in the application state.
     """
     metrics_middleware: Optional[MetricsMiddleware] = getattr(request.app.state, "metrics", None)
     if not isinstance(metrics_middleware, MetricsMiddleware):

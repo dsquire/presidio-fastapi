@@ -10,14 +10,17 @@ logger = logging.getLogger(__name__)
 
 @lru_cache()
 def get_analyzer() -> AnalyzerEngine:
-    """
-    Create and cache the Presidio analyzer engine with entity mapping configuration.
-    
+    """Creates and caches the Presidio analyzer engine.
+
+    The engine is configured with entity mapping from the application settings.
+    Uses lru_cache to ensure the engine is created only once.
+
     Returns:
-        AnalyzerEngine: Configured analyzer instance with entity mapping
-        
+        An instance of presidio_analyzer.AnalyzerEngine configured with
+        NLP engine and entity mappings.
+
     Raises:
-        Exception: If analyzer creation fails
+        Exception: If the analyzer or NLP engine creation fails.
     """
     try:
         logger.info("Creating NLP config with entity mapping...")

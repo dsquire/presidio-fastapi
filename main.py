@@ -22,6 +22,14 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup():
+    """Initializes application resources on startup.
+
+    This function sets up logging, initializes OpenTelemetry for tracing,
+    and creates the Presidio analyzer engine. It stores the analyzer
+    instance in the application state. If any step fails, it logs the error
+    and re-raises the exception to prevent the application from starting
+    in a broken state.
+    """
     try:
         logger.info("Starting up application...")
         
@@ -43,6 +51,11 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
+    """Cleans up resources on application shutdown.
+
+    Currently, this function sets the analyzer instance in the application
+    state to None, allowing it to be garbage collected.
+    """
     app.state.analyzer = None
 
 # Include API routes
@@ -50,7 +63,12 @@ app.include_router(router)
 
 @app.get("/")
 async def read_root():
-    """Redirect to the latest API version documentation."""
+    """Redirects to the latest API version documentation.
+
+    Returns:
+        dict: A dictionary containing a status message and the URL
+              to the API documentation.
+    """
     return {
         "status": "ok",
         "message": f"Please use the API at /api/{settings.API_VERSION}",
