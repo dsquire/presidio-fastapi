@@ -17,8 +17,8 @@ def get_analyzer() -> AnalyzerEngine:
     Uses lru_cache to ensure the engine is created only once.
 
     Returns:
-        An instance of presidio_analyzer.AnalyzerEngine configured with
-        NLP engine and entity mappings.
+        AnalyzerEngine: An instance of presidio_analyzer.AnalyzerEngine 
+                        configured with NLP engine and entity mappings.
 
     Raises:
         Exception: If the analyzer or NLP engine creation fails.

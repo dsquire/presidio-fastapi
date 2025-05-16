@@ -93,7 +93,7 @@ LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, or CRITICAL
 # For PowerShell:
 # .\.venv\Scripts\Activate.ps1
 
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 The API will be available at `http://localhost:8000`.
