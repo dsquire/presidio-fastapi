@@ -25,9 +25,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self'; "
@@ -37,9 +35,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "connect-src 'self';"
         )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = (
-            "geolocation=(), microphone=(), camera=()"
-        )
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         return response
 
 
@@ -85,9 +81,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         async with self._lock:
             # Clean old requests
             self.requests[client_ip] = [
-                req_time
-                for req_time in self.requests[client_ip]
-                if now_ts - req_time < 60
+                req_time for req_time in self.requests[client_ip] if now_ts - req_time < 60
             ]
 
             # Check burst limit
@@ -125,9 +119,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Remaining"] = str(
             self.requests_per_minute - len(self.requests[client_ip])
         )
-        response.headers["X-RateLimit-Reset"] = str(
-            int(now_ts - self.requests[client_ip][0])
-        )
+        response.headers["X-RateLimit-Reset"] = str(int(now_ts - self.requests[client_ip][0]))
 
         return response
 
@@ -201,15 +193,11 @@ class MetricsMiddleware(BaseHTTPMiddleware):
     def get_metrics(self) -> dict[str, Any]:
         """Get current metrics with security insights."""
         avg_response_time = (
-            sum(self.response_times) / len(self.response_times)
-            if self.response_times
-            else 0
+            sum(self.response_times) / len(self.response_times) if self.response_times else 0
         )
 
         error_rate = (
-            sum(self.error_counts.values()) / self.requests_count
-            if self.requests_count
-            else 0
+            sum(self.error_counts.values()) / self.requests_count if self.requests_count else 0
         )
 
         return {

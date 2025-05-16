@@ -68,6 +68,7 @@ def trace_method(
     Returns:
         A decorator function that adds tracing to the decorated async method.
     """
+
     def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
         """Wrap the async function with tracing.
 
@@ -77,6 +78,7 @@ def trace_method(
         Returns:
             The wrapped async function with tracing added.
         """
+
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             """Execute the wrapped async function with tracing.
