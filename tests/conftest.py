@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[misc]
 def client() -> TestClient:
     """Create a test client for the FastAPI application.
 

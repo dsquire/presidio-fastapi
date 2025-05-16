@@ -37,6 +37,7 @@ dev = [
     "isort>=5.12.0",
     "mypy>=1.5.0",
     "ruff>=0.0.284",
+    "pydantic>=2.0.0", # Removed [mypy] extra
 ]
 
 [tool.ruff.lint]
@@ -50,6 +51,9 @@ line-length = 100
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+plugins = [
+  "pydantic.mypy" # Added pydantic plugin
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

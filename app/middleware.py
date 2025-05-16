@@ -4,11 +4,13 @@ import asyncio
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
-from typing import Callable, Dict
+from typing import Any
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
+from starlette.datastructures import Address
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses."""
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -41,21 +43,21 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app,
+        app: Any,
         requests_per_minute: int = 60,
         burst_limit: int = 100,
         block_duration: int = 300,  # 5 minutes
-    ):
+    ) -> None:
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.burst_limit = burst_limit
         self.block_duration = block_duration
-        self.requests: Dict[str, list] = defaultdict(list)
-        self.blocked_ips: Dict[str, datetime] = {}
+        self.requests: dict[str, list[float]] = defaultdict(list)
+        self.blocked_ips: dict[str, datetime] = {}
         self._lock = asyncio.Lock()
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        client_ip = request.client.host
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        client_ip = request.client.host if request.client else "unknown_client"
         now = datetime.now(timezone.utc)
         now_ts = now.timestamp()
 
@@ -122,13 +124,13 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 class MetricsMiddleware(BaseHTTPMiddleware):
     """Collect request metrics with enhanced security monitoring."""
 
-    def __init__(self, app):
+    def __init__(self, app: Any) -> None:
         super().__init__(app)
-        self.requests_count = 0
-        self.requests_by_path = defaultdict(int)
-        self.response_times = []
-        self.error_counts = defaultdict(int)
-        self.suspicious_requests = defaultdict(int)
+        self.requests_count: int = 0
+        self.requests_by_path: dict[str, int] = defaultdict(int)
+        self.response_times: list[float] = []
+        self.error_counts: dict[int, int] = defaultdict(int)
+        self.suspicious_requests: dict[str, int] = defaultdict(int)
         self._lock = asyncio.Lock()
 
     def _is_suspicious(self, request: Request) -> bool:
@@ -144,13 +146,18 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
         return any(pattern in path or pattern in query for pattern in suspicious_patterns)
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         start_time = time.monotonic()  # Use monotonic for duration measurements
 
         # Check for suspicious activity
+        # Ensure client_host is always a string, even if request.client or request.client.host is None
+        client_host: str = "unknown_client"
+        if request.client and request.client.host:
+            client_host = request.client.host
+        
         if self._is_suspicious(request):
             async with self._lock:
-                self.suspicious_requests[request.client.host] += 1
+                self.suspicious_requests[client_host] += 1 # client_host is now guaranteed to be a string
 
         try:
             response = await call_next(request)
@@ -176,7 +183,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             self.error_counts[500] += 1
             raise
 
-    def get_metrics(self) -> dict:
+    def get_metrics(self) -> dict[str, Any]:
         """Get current metrics with security insights."""
         avg_response_time = (
             sum(self.response_times) / len(self.response_times) if self.response_times else 0

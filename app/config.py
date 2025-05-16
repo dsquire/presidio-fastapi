@@ -20,6 +20,8 @@ class Settings(BaseSettings):
         BURST_LIMIT (int): Burst limit for rate limiting.
         BLOCK_DURATION (int): Duration in seconds to block IPs exceeding limits.
         LOG_LEVEL (str): The logging level for the application.
+        SERVER_HOST (str): The host address for the server.
+        SERVER_PORT (int): The port number for the server.
         NLP_ENGINE_NAME (str): The name of the NLP engine (e.g., "spacy").
         SPACY_MODEL_EN (str): The Spacy model for English.
         SPACY_MODEL_ES (str | None): The optional Spacy model for Spanish.
@@ -43,6 +45,10 @@ class Settings(BaseSettings):
 
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
+
+    # Server Configuration
+    SERVER_HOST: str = "0.0.0.0"
+    SERVER_PORT: int = 8000
 
     # NLP Configuration
     NLP_ENGINE_NAME: str = "spacy"

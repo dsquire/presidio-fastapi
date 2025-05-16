@@ -1,9 +1,9 @@
 """OpenTelemetry configuration and utilities."""
 
 import logging
-from collections.abc import Callable
-from functools import lru_cache
-from typing import Any
+from collections.abc import Awaitable, Callable
+from functools import lru_cache, wraps
+from typing import Any, ParamSpec, TypeVar
 
 from fastapi import FastAPI
 from opentelemetry import trace
@@ -16,6 +16,9 @@ from opentelemetry.trace.status import Status, StatusCode
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 @lru_cache()
@@ -54,38 +57,37 @@ def setup_telemetry(app: FastAPI) -> None:
         logger.exception(e)
 
 
-def trace_method(name: str | None = None) -> Callable:
-    """Decorator to add OpenTelemetry tracing to a method.
+def trace_method(name: str | None = None) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
+    """Decorator to add OpenTelemetry tracing to an async method.
 
     Args:
         name: Optional name for the span. If not provided, the function name is used.
 
     Returns:
-        A decorator function that adds tracing to the decorated method.
+        A decorator function that adds tracing to the decorated async method.
     """
-
-    def decorator(func: Callable) -> Callable:
-        """Wrap the function with tracing.
+    def decorator(func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+        """Wrap the async function with tracing.
 
         Args:
-            func: The function to be wrapped with tracing.
+            func: The async function to be wrapped with tracing.
 
         Returns:
-            The wrapped function with tracing added.
+            The wrapped async function with tracing added.
         """
-
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            """Execute the wrapped function with tracing.
+        @wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            """Execute the wrapped async function with tracing.
 
             Args:
-                *args: Positional arguments to pass to the wrapped function.
-                **kwargs: Keyword arguments to pass to the wrapped function.
+                *args: Positional arguments to pass to the wrapped async function.
+                **kwargs: Keyword arguments to pass to the wrapped async function.
 
             Returns:
-                The result of the wrapped function.
+                The result of the wrapped async function.
 
             Raises:
-                Any exception that the wrapped function may raise.
+                Any exception that the wrapped async function may raise.
             """
             # Get current tracer
             tracer = trace.get_tracer(__name__)
@@ -102,7 +104,7 @@ def trace_method(name: str | None = None) -> Callable:
                         }
                     )
 
-                    result = await func(*args, **kwargs)
+                    result: R = await func(*args, **kwargs)
 
                     # Add success status
                     span.set_status(Status(StatusCode.OK))
