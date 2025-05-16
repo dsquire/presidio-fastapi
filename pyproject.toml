@@ -1,10 +1,59 @@
 [project]
 name = "presidio-fastapi"
 version = "0.1.0"
-description = "Add your description here"
+description = "A FastAPI service for detecting PII using Microsoft Presidio"
 readme = "README.md"
 requires-python = "==3.12.*"
-dependencies = [
-    "fastapi[standard]>=0.115.12",
-    "presidio-analyzer>=2.2.358",
+license = { file = "LICENSE" }
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
 ]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security :: Privacy",
+]
+dependencies = [
+    "fastapi[all]>=0.115.12",
+    "presidio-analyzer>=2.2.358",
+    "python-dotenv>=1.0.0",
+    "pydantic-settings>=2.0.0",
+    "uvicorn[standard]>=0.24.0",
+    "starlette>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.7.0",
+    "isort>=5.12.0",
+    "mypy>=1.5.0",
+    "ruff>=0.0.284",
+]
+
+[tool.ruff]
+select = ["E", "F", "B", "I"]
+ignore = []
+line-length = 100
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
