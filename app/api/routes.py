@@ -3,7 +3,7 @@
 This module contains all the route handlers for the API endpoints.
 """
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request, status
 
