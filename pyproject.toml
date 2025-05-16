@@ -1,0 +1,10 @@
+[project]
+name = "presidio-fastapi"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.12.*"
+dependencies = [
+    "fastapi[standard]>=0.115.12",
+    "presidio-analyzer>=2.2.358",
+]
