@@ -1,47 +1,36 @@
 """Main application module."""
+import logging
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
-from app.config import settings
-from app.middleware import SecurityHeadersMiddleware, RateLimiterMiddleware, MetricsMiddleware
+from app.services.analyzer import get_analyzer
 
-# Initialize FastAPI app with metadata
-app = FastAPI(
-    title="Presidio Analyzer API",
-    description="API for analyzing text for PII using Microsoft Presidio",
-    version="1.0.0"
-)
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-# Add middleware in order (last added = first executed)
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(
-    RateLimiterMiddleware,
-    requests_per_minute=60,
-    burst_limit=100
-)
+app = FastAPI(title="Presidio Analyzer API")
 
-# Add metrics middleware and store reference
-metrics_middleware = MetricsMiddleware(app)
-app.add_middleware(lambda app: metrics_middleware)
-app.metrics = metrics_middleware
+@app.on_event("startup")
+async def startup():
+    try:
+        logger.info("Starting up application...")
+        logger.info("Initializing analyzer...")
+        analyzer = get_analyzer()
+        logger.info("Analyzer initialized successfully")
+        app.state.analyzer = analyzer
+        logger.info("Application startup complete")
+    except Exception as e:
+        logger.error(f"Error during startup: {str(e)}")
+        logger.exception(e)
+        raise
 
-# Add CORS middleware with secure configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=bool(settings.cors_origins),  # Only True when origins are specified
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
-    max_age=86400,  # 24 hours
-)
+@app.on_event("shutdown")
+async def shutdown():
+    app.state.analyzer = None
 
 # Include API routes
 app.include_router(router)
 
 @app.get("/")
 async def read_root():
-    """Root endpoint for API status."""
-    return {
-        "status": "ok",
-        "message": "Welcome to Presidio Analyzer API. Use POST /analyze to analyze text."
-    }
+    return {"status": "ok"}

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from app.models import AnalyzeRequest, AnalyzeResponse
-from app.services.analyzer import get_analyzer
 from app.middleware import MetricsMiddleware
+from typing import Optional
 
 router = APIRouter()
 
@@ -12,12 +12,13 @@ router = APIRouter()
     response_description="List of detected PII entities",
     tags=["Analyzer"]
 )
-async def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
+async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse:
     """
     Analyze text for personally identifiable information (PII) using Microsoft Presidio.
     
     Args:
         request: AnalyzeRequest containing the text to analyze and optional language code
+        req: FastAPI request object to access application state
         
     Returns:
         AnalyzeResponse containing the list of detected entities
@@ -26,7 +27,10 @@ async def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
         HTTPException: If the analysis fails or invalid language is provided
     """
     try:
-        analyzer = get_analyzer()
+        analyzer = req.app.state.analyzer
+        if not analyzer:
+            raise HTTPException(status_code=503, detail="Analyzer service not available")
+            
         results = analyzer.analyze(
             text=request.text,
             language=request.language,
@@ -64,6 +68,7 @@ async def health_check():
 @router.get("/metrics")
 async def metrics(request: Request):
     """Get application metrics."""
-    if not isinstance(request.app.metrics, MetricsMiddleware):
+    metrics_middleware: Optional[MetricsMiddleware] = getattr(request.app.state, "metrics", None)
+    if not isinstance(metrics_middleware, MetricsMiddleware):
         raise HTTPException(status_code=500, detail="Metrics middleware not configured")
-    return request.app.metrics.get_metrics()
+    return metrics_middleware.get_metrics()
