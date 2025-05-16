@@ -78,7 +78,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
             
             # Check burst limit
             if len(self.requests[client_ip]) >= self.burst_limit:
-                self.blocked_ips[client_ip] = datetime.now() + timedelta(seconds=self.block_duration)
+                block_until = datetime.now() + timedelta(seconds=self.block_duration)
+                self.blocked_ips[client_ip] = block_until
                 logger.warning(f"IP {client_ip} blocked for burst limit violation")
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
