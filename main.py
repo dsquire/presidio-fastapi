@@ -1,4 +1,5 @@
 """Main application module."""
+
 import logging
 
 from fastapi import FastAPI
@@ -17,8 +18,9 @@ app = FastAPI(
     title=f"Presidio Analyzer API {settings.API_VERSION}",
     docs_url=f"/api/{settings.API_VERSION}/docs",
     redoc_url=f"/api/{settings.API_VERSION}/redoc",
-    openapi_url=f"/api/{settings.API_VERSION}/openapi.json"
+    openapi_url=f"/api/{settings.API_VERSION}/openapi.json",
 )
+
 
 @app.on_event("startup")
 async def startup():
@@ -32,22 +34,23 @@ async def startup():
     """
     try:
         logger.info("Starting up application...")
-        
+
         # Initialize OpenTelemetry
         logger.info("Configuring OpenTelemetry...")
         setup_telemetry(app)
-        
+
         # Initialize analyzer
         logger.info("Initializing analyzer...")
         analyzer = get_analyzer()
         app.state.analyzer = analyzer
-        
+
         logger.info("Application startup complete")
-        
+
     except Exception as e:
         logger.error(f"Error during startup: {str(e)}")
         logger.exception(e)
         raise
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -58,8 +61,10 @@ async def shutdown():
     """
     app.state.analyzer = None
 
+
 # Include API routes
 app.include_router(router)
+
 
 @app.get("/")
 async def read_root():
@@ -72,5 +77,5 @@ async def read_root():
     return {
         "status": "ok",
         "message": f"Please use the API at /api/{settings.API_VERSION}",
-        "docs_url": f"/api/{settings.API_VERSION}/docs"
+        "docs_url": f"/api/{settings.API_VERSION}/docs",
     }

@@ -2,6 +2,7 @@
 
 This module contains all the route handlers for the API endpoints.
 """
+
 import logging
 from typing import Any, Dict
 
@@ -14,6 +15,7 @@ from app.telemetry import trace_method
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix=f"/api/{settings.API_VERSION}")
+
 
 @router.post(
     "/analyze",
@@ -74,7 +76,7 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
                 "start": result.start,
                 "end": result.end,
                 "score": result.score,
-                "text": request.text[result.start:result.end],
+                "text": request.text[result.start : result.end],
             }
             for result in results
         ]
@@ -94,6 +96,7 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error occurred",
         ) from e
+
 
 @router.post(
     "/analyze/batch",
@@ -154,7 +157,7 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
                         "start": result.start,
                         "end": result.end,
                         "score": result.score,
-                        "text": text[result.start:result.end],
+                        "text": text[result.start : result.end],
                     }
                     for result in analyzed
                 ]
@@ -175,6 +178,7 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
             detail="Internal server error occurred",
         ) from e
 
+
 @router.get(
     "/health",
     summary="Health check endpoint",
@@ -191,6 +195,7 @@ async def health_check() -> Dict[str, str]:
         Example: {"status": "healthy"}
     """
     return {"status": "healthy"}
+
 
 @router.get(
     "/metrics",

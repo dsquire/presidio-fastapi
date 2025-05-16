@@ -1,4 +1,5 @@
 """Application configuration management."""
+
 import logging
 from functools import lru_cache
 from typing import Any
@@ -27,21 +28,22 @@ class Settings(BaseSettings):
         MIN_CONFIDENCE_SCORE (float): Minimum confidence score for PII detection.
         ENTITY_MAPPING (dict[str, list[str]]): Mapping of Presidio entities.
     """
+
     # API Version
     API_VERSION: str = "v1"
-    
+
     # OpenTelemetry Configuration
     OTLP_ENDPOINT: str = "http://localhost:4317"
     OTLP_SECURE: bool = False
-    
+
     # Rate Limiting Settings
     REQUESTS_PER_MINUTE: int = 60
     BURST_LIMIT: int = 100
     BLOCK_DURATION: int = 300
-    
+
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
-    
+
     # NLP Configuration
     NLP_ENGINE_NAME: str = "spacy"
     SPACY_MODEL_EN: str = "en_core_web_lg"
@@ -49,7 +51,7 @@ class Settings(BaseSettings):
     MAX_TEXT_LENGTH: int = 102400
     ALLOWED_ORIGINS: str = ""
     MIN_CONFIDENCE_SCORE: float = 0.5
-    
+
     # Entity Mapping Configuration
     ENTITY_MAPPING: dict[str, list[str]] = {
         "PERSON": ["PERSON", "PER"],
@@ -63,7 +65,7 @@ class Settings(BaseSettings):
         "US_DRIVER_LICENSE": ["DRIVER_LICENSE", "DL"],
         "URL": ["URL", "URI"],
     }
-    
+
     @property
     def cors_origins(self) -> list[str]:
         """Get the list of allowed CORS origins.
@@ -72,12 +74,8 @@ class Settings(BaseSettings):
             A list of allowed CORS origins split from the ALLOWED_ORIGINS setting.
             If no origins are configured, returns an empty list.
         """
-        return [
-            origin.strip()
-            for origin in self.ALLOWED_ORIGINS.split(",")
-            if origin.strip()
-        ]
-    
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+
     @property
     def nlp_configuration(self) -> dict[str, Any]:
         """Construct the NLP configuration for Presidio Analyzer.
@@ -108,20 +106,22 @@ class Settings(BaseSettings):
                 "model_to_presidio_entity_mapping": self.ENTITY_MAPPING,
             },
         ]
-        
+
         # Add Spanish model if configured
         if self.SPACY_MODEL_ES:
-            models.append({
-                "lang_code": "es",
-                "model_name": self.SPACY_MODEL_ES,
-                "model_to_presidio_entity_mapping": self.ENTITY_MAPPING,
-            })
-        
+            models.append(
+                {
+                    "lang_code": "es",
+                    "model_name": self.SPACY_MODEL_ES,
+                    "model_to_presidio_entity_mapping": self.ENTITY_MAPPING,
+                }
+            )
+
         return {
             "nlp_engine_name": self.NLP_ENGINE_NAME,
             "models": models,
         }
-    
+
     @property
     def log_level(self) -> int:
         """Convert the string log level from settings to a logging constant.
@@ -140,6 +140,7 @@ class Settings(BaseSettings):
             env_file (str): The name of the environment file to load (e.g., ".env").
             case_sensitive (bool): Whether environment variable names are case-sensitive.
         """
+
         env_file = ".env"
         case_sensitive = True
 

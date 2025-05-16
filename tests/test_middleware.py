@@ -1,4 +1,5 @@
 """Test middleware functionality."""
+
 import time
 from http import HTTPStatus
 
@@ -11,7 +12,7 @@ RESPONSE_TIME_SLEEP = 0.1  # seconds
 
 def test_security_headers(client: TestClient) -> None:
     """Test security headers are added to responses.
-    
+
     Args:
         client: FastAPI test client
     """
@@ -25,14 +26,14 @@ def test_security_headers(client: TestClient) -> None:
 
 def test_rate_limiter(client: TestClient) -> None:
     """Test rate limiting functionality.
-    
+
     Args:
         client: FastAPI test client
     """
     # Make burst_limit + 1 requests
     for _ in range(BURST_LIMIT + 1):
         response = client.get("/")
-    
+
     # Next request should be rate limited
     response = client.get("/")
     assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS
@@ -42,7 +43,7 @@ def test_rate_limiter(client: TestClient) -> None:
 
 def test_metrics_endpoint(client: TestClient) -> None:
     """Test metrics collection and endpoint.
-    
+
     Args:
         client: FastAPI test client
     """
@@ -50,17 +51,17 @@ def test_metrics_endpoint(client: TestClient) -> None:
     client.get("/")
     client.get("/health")
     time.sleep(RESPONSE_TIME_SLEEP)  # Ensure we get some measurable response time
-    
+
     # Check metrics
     response = client.get("/metrics")
     assert response.status_code == HTTPStatus.OK
     data = response.json()
-    
+
     assert "total_requests" in data
     assert "requests_by_path" in data
     assert "average_response_time" in data
     assert "requests_in_last_minute" in data
-    
+
     assert data["total_requests"] >= 3  # Including the metrics request itself
     assert "/" in data["requests_by_path"]
     assert "/health" in data["requests_by_path"]

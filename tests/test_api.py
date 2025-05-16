@@ -1,4 +1,5 @@
 """API endpoint tests."""
+
 from http import HTTPStatus
 
 from fastapi.testclient import TestClient
@@ -6,7 +7,7 @@ from fastapi.testclient import TestClient
 
 def test_root_endpoint(client: TestClient) -> None:
     """Test the root endpoint returns correct status.
-    
+
     Args:
         client: FastAPI test client
     """
@@ -18,7 +19,7 @@ def test_root_endpoint(client: TestClient) -> None:
 
 def test_health_check(client: TestClient) -> None:
     """Test the health check endpoint.
-    
+
     Args:
         client: FastAPI test client
     """
@@ -29,7 +30,7 @@ def test_health_check(client: TestClient) -> None:
 
 def test_analyze_endpoint_success(client: TestClient) -> None:
     """Test successful PII analysis.
-    
+
     Args:
         client: FastAPI test client
     """
@@ -53,7 +54,7 @@ def test_analyze_endpoint_success(client: TestClient) -> None:
 
 def test_analyze_endpoint_validation(client: TestClient) -> None:
     """Test input validation for analyze endpoint.
-    
+
     Args:
         client: FastAPI test client
     """
