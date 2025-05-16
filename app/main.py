@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 from app.api.routes import router
 from app.config import settings
+from app.middleware import SecurityHeadersMiddleware, RateLimiterMiddleware, MetricsMiddleware
 from app.services.analyzer import get_analyzer
 from app.telemetry import setup_telemetry
 
@@ -22,16 +24,42 @@ openapi_schema_cache: dict[str, Any] | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application lifespan events."""
+    await startup_event(app)
     yield
+    await shutdown_event(app)
 
 
-async def startup_event() -> None:
+async def startup_event(app: FastAPI) -> None:
     """Perform startup activities."""
     logger.info("Application startup")
+    
+    logger.info("Setting up telemetry...")
     setup_telemetry(app)
+    
+    logger.info("Initializing middleware...")
+    # Initialize metrics middleware first since others might generate metrics
+    metrics_middleware = MetricsMiddleware(app)
+    app.state.metrics = metrics_middleware
+    app.add_middleware(MetricsMiddleware)
+    
+    # Initialize security middleware
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimiterMiddleware)
+    
+    # Initialize analyzer
+    try:
+        logger.info("Initializing analyzer...")
+        analyzer = get_analyzer()
+        app.state.analyzer = analyzer
+        logger.info("Analyzer initialization complete")
+    except Exception as e:
+        logger.error("Failed to initialize analyzer: %s", str(e))
+        raise
+    
+    logger.info("Application startup complete")
 
 
-async def shutdown_event() -> None:
+async def shutdown_event(app: FastAPI) -> None:
     """Perform shutdown activities."""
     logger.info("Application shutdown")
 
@@ -64,60 +92,8 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    @app.on_event("startup")
-    async def startup() -> None:
-        """Initializes application resources on startup.
-
-        This function sets up logging, initializes OpenTelemetry for tracing,
-        and creates the Presidio analyzer engine. It stores the analyzer
-        instance in the application state. If any step fails, it logs the error
-        and re-raises the exception to prevent the application from starting
-        in a broken state.
-        """
-        try:
-            logger.info("Starting up application...")
-
-            # Initialize OpenTelemetry
-            logger.info("Configuring OpenTelemetry...")
-            setup_telemetry(app)
-
-            # Initialize analyzer
-            logger.info("Initializing analyzer...")
-            analyzer = get_analyzer()
-            app.state.analyzer = analyzer
-
-            logger.info("Application startup complete")
-
-        except Exception as e:
-            logger.error(f"Error during startup: {str(e)}")
-            logger.exception(e)
-            raise
-
-    @app.on_event("shutdown")
-    async def shutdown() -> None:
-        """Cleans up resources on application shutdown.
-
-        Currently, this function sets the analyzer instance in the application
-        state to None, allowing it to be garbage collected.
-        """
-        app.state.analyzer = None
-
     # Include API routes
     app.include_router(router)
-
-    @app.get("/")
-    async def read_root() -> dict[str, str]:
-        """Redirects to the latest API version documentation.
-
-        Returns:
-            dict: A dictionary containing a status message and the URL
-                  to the API documentation.
-        """
-        return {
-            "status": "ok",
-            "message": f"Please use the API at /api/{settings.API_VERSION}",
-            "docs_url": f"/api/{settings.API_VERSION}/docs",
-        }
 
     return app
 
@@ -132,8 +108,8 @@ if __name__ == "__main__":
 
     uvicorn.run(
         app,
-        host=settings.SERVER_HOST,  # Corrected attribute name
-        port=settings.SERVER_PORT,  # Corrected attribute name
-        log_level=settings.LOG_LEVEL.lower(),  # Ensure log_level is lowercase
+        host=settings.SERVER_HOST,
+        port=settings.SERVER_PORT,
+        log_level=settings.LOG_LEVEL.lower(),
         reload=True,
     )

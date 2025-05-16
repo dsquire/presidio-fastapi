@@ -6,7 +6,8 @@ from http import HTTPStatus
 from fastapi.testclient import TestClient
 
 # Constants for rate limiting tests
-BURST_LIMIT = 100
+from .conftest import BURST_LIMIT, REQUESTS_PER_MINUTE, BLOCK_DURATION
+
 RESPONSE_TIME_SLEEP = 0.1  # seconds
 
 

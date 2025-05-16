@@ -1,16 +1,38 @@
 """Test configuration and fixtures."""
 
+import asyncio
+from typing import AsyncGenerator
+
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import create_app
+from app.middleware import RateLimiterMiddleware, MetricsMiddleware
+
+# Test constants
+REQUESTS_PER_MINUTE = 60
+BURST_LIMIT = 100
+BLOCK_DURATION = 1
 
 
 @pytest.fixture
-def client() -> TestClient:
+async def app_with_lifespan() -> AsyncGenerator[FastAPI, None]:
+    """Create application and run lifespan events."""
+    app = create_app()
+    
+    async with app.router.lifespan_context(app):
+        # Wait for any background tasks
+        await asyncio.sleep(0.1)
+        yield app
+
+
+@pytest.fixture
+def client(app_with_lifespan: FastAPI) -> TestClient:
     """Create a test client for the FastAPI application.
 
     Returns:
         TestClient: A configured test client for making requests.
     """
-    return TestClient(app)
+    # Initialize test client with the app that has completed lifespan setup
+    return TestClient(app_with_lifespan)

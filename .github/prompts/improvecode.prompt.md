@@ -11,6 +11,9 @@ Please perform a comprehensive code review and analysis of this Python project, 
 - Consistent naming conventions
 - Use of Pythonic idioms and patterns
 - Code complexity and readability
+- Do not use workarounds or hacks
+- Use clean code principles
+- Avoid unnecessary comments
 
 3. Performance Optimization
 - Algorithmic efficiency

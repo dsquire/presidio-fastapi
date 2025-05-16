@@ -5,6 +5,7 @@ from functools import lru_cache
 from typing import Any
 
 from pydantic_settings import BaseSettings
+from pydantic import model_validator
 
 
 class Settings(BaseSettings):
@@ -72,6 +73,19 @@ class Settings(BaseSettings):
         "URL": ["URL", "URI"],
     }
 
+    @model_validator(mode='before')
+    @classmethod
+    def _strip_inline_comments(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            cleaned_data = {}
+            for key, value in data.items():
+                if isinstance(value, str):
+                    cleaned_data[key] = value.split("#")[0].strip()
+                else:
+                    cleaned_data[key] = value
+            return cleaned_data
+        return data
+
     @property
     def cors_origins(self) -> list[str]:
         """Get the list of allowed CORS origins.
@@ -88,7 +102,8 @@ class Settings(BaseSettings):
 
         This configuration includes the NLP engine name and a list of models
         with their language codes, model names, and entity mappings.
-        The Spanish model is included only if SPACY_MODEL_ES is configured.
+        The Spanish model is included only if SPACY_MODEL_ES is configured 
+        with a valid model name.
 
         Returns:
             A dictionary containing the NLP configuration suitable for
@@ -99,29 +114,19 @@ class Settings(BaseSettings):
                     {
                         "lang_code": str,
                         "model_name": str,
-                        "model_to_presidio_entity_mapping": dict
                     },
-                    ...
-                ]
+                    # ... more models
+                ],
             }
         """
         models = [
-            {
-                "lang_code": "en",
-                "model_name": self.SPACY_MODEL_EN,
-                "model_to_presidio_entity_mapping": self.ENTITY_MAPPING,
-            },
+            {"lang_code": "en", "model_name": self.SPACY_MODEL_EN.split("#")[0].strip()}
         ]
-
-        # Add Spanish model if configured
         if self.SPACY_MODEL_ES:
-            models.append(
-                {
-                    "lang_code": "es",
-                    "model_name": self.SPACY_MODEL_ES,
-                    "model_to_presidio_entity_mapping": self.ENTITY_MAPPING,
-                }
-            )
+            # Strip comments from the Spanish model name
+            spanish_model_name = self.SPACY_MODEL_ES.split("#")[0].strip()
+            if spanish_model_name:  # Ensure it's not an empty string after stripping
+                models.append({"lang_code": "es", "model_name": spanish_model_name})
 
         return {
             "nlp_engine_name": self.NLP_ENGINE_NAME,

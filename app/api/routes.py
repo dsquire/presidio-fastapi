@@ -14,7 +14,7 @@ from app.models import AnalyzeRequest, AnalyzeResponse, BatchAnalyzeRequest, Bat
 from app.telemetry import trace_method
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix=f"/api/{settings.API_VERSION}")
+router = APIRouter()
 
 
 @router.post(

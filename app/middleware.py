@@ -135,7 +135,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         self.error_counts: dict[int, int] = defaultdict(int)
         self.suspicious_requests: dict[str, int] = defaultdict(int)
         self._lock = asyncio.Lock()
-
+    
     def _is_suspicious(self, request: Request) -> bool:
         """Check for potentially suspicious patterns in requests."""
         suspicious_patterns = [
@@ -146,58 +146,75 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         ]
         path = request.url.path.lower()
         query = str(request.query_params).lower()
-
+        
         return any(pattern in path or pattern in query for pattern in suspicious_patterns)
+
+    async def _update_metrics(
+        self, 
+        request: Request, 
+        duration: float, 
+        status_code: int | None = None,
+    ) -> None:
+        """Update metrics under lock."""
+        async with self._lock:
+            self.requests_count += 1
+            self.requests_by_path[request.url.path] += 1
+            self.response_times.append(duration)
+            
+            # Keep only last minute of response times
+            now = time.monotonic()
+            cutoff = now - 60  # 1 minute ago
+            self.response_times = [t for t in self.response_times if t > cutoff]
+            
+            # Track errors
+            if status_code and status_code >= 400:
+                self.error_counts[status_code] += 1
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        start_time = time.monotonic()  # Use monotonic for duration measurements
+        start_time = time.monotonic()
 
         # Check for suspicious activity
-        # Ensure client_host is always a string, even if request.client or
-        # request.client.host is None
-        client_host: str = "unknown_client"
-        if request.client and request.client.host:
-            client_host = request.client.host
-
+        client_host: str = getattr(request.client, "host", "unknown_client")
         if self._is_suspicious(request):
             async with self._lock:
-                # client_host is now guaranteed to be a string
                 self.suspicious_requests[client_host] += 1
 
         try:
             response = await call_next(request)
             duration = time.monotonic() - start_time
-
-            async with self._lock:
-                self.requests_count += 1
-                self.requests_by_path[request.url.path] += 1
-                self.response_times.append(duration)
-
-                # Keep only last 1000 response times
-                if len(self.response_times) > 1000:
-                    self.response_times.pop(0)
-
-                # Track errors
-                if response.status_code >= 400:
-                    self.error_counts[response.status_code] += 1
-
+            
+            await self._update_metrics(
+                request=request,
+                duration=duration,
+                status_code=response.status_code,
+            )
+            
             return response
 
-        except Exception:
+        except Exception as e:
+            duration = time.monotonic() - start_time
+            await self._update_metrics(
+                request=request,
+                duration=duration,
+                status_code=500,
+            )
             logger.exception("Error processing request")
-            self.error_counts[500] += 1
             raise
 
     def get_metrics(self) -> dict[str, Any]:
         """Get current metrics with security insights."""
+        # Calculate average response time from the last minute
         avg_response_time = (
-            sum(self.response_times) / len(self.response_times) if self.response_times else 0
+            sum(self.response_times) / len(self.response_times)
+            if self.response_times else 0
         )
-
+        
+        # Calculate error rate
         error_rate = (
-            sum(self.error_counts.values()) / self.requests_count if self.requests_count else 0
+            sum(self.error_counts.values()) / self.requests_count
+            if self.requests_count else 0
         )
 
         return {
