@@ -26,14 +26,31 @@ A secure, high-performance FastAPI service for detecting Personally Identifiable
 
 1. Clone the repository
 2. Install dependencies and language models:
-```bash
-# Install package
-pip install -e .
 
-# Install required language models
-python -m spacy download en_core_web_lg  # Required: English model
-python -m spacy download es_core_news_lg  # Optional: Spanish model
-```
+   Using `pip`:
+   ```bash
+   # Install package
+   pip install -e .
+
+   # Install required language models
+   python -m spacy download en_core_web_lg  # Required: English model
+   python -m spacy download es_core_news_lg  # Optional: Spanish model
+   ```
+
+   Alternatively, using `uv`:
+   ```bash
+   # Install uv (if you haven't already)
+   # pip install uv 
+   # or consult https://github.com/astral-sh/uv for other installation methods
+
+   # Create a virtual environment and install dependencies
+   uv venv
+   uv pip install -e .
+
+   # Install required language models
+   python -m spacy download en_core_web_lg  # Required: English model
+   python -m spacy download es_core_news_lg  # Optional: Spanish model
+   ```
 
 ## Environment Variables
 
@@ -64,6 +81,50 @@ OTLP_SECURE=false  # Whether to use TLS for OTLP exporter
 
 # Logging Configuration
 LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, or CRITICAL
+```
+
+## Running the Application
+
+1. Ensure you have created a `.env` file as described in the "Environment Variables" section.
+2. Start the FastAPI application using Uvicorn:
+
+```bash
+# Make sure your virtual environment is activated
+# For PowerShell:
+# .\.venv\Scripts\Activate.ps1
+
+uvicorn main:app --reload
+```
+
+The API will be available at `http://localhost:8000`.
+
+API documentation will be available at:
+- Swagger UI: `http://localhost:8000/api/v1/docs` (or your configured API_VERSION)
+- ReDoc: `http://localhost:8000/api/v1/redoc` (or your configured API_VERSION)
+
+## Running Tests
+
+This project uses pytest for testing.
+
+1. Ensure all development dependencies are installed:
+
+   Using `pip`:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+   Alternatively, using `uv`:
+   ```bash
+   # Ensure your virtual environment created with uv is active
+   # .venv\Scripts\Activate.ps1 (PowerShell)
+   # source .venv/bin/activate (bash/zsh)
+   uv pip install -e ".[dev]"
+   ```
+
+2. Run the tests using the following command from the project root directory:
+
+```bash
+pytest
 ```
 
 ## API Reference
@@ -104,14 +165,16 @@ Response:
 
 #### Batch Text Analysis
 
+This endpoint allows analyzing multiple pieces of text in a single request.
+
 ```bash
 POST /api/v1/analyze/batch
 
 Request:
 {
     "texts": [
-        "My name is John Doe",
-        "Contact me at john@example.com"
+        {"text": "My name is Jane Doe and my email is jane@example.com"},
+        {"text": "His phone number is 555-1234."}
     ],
     "language": "en"
 }
@@ -126,18 +189,25 @@ Response:
                     "start": 11,
                     "end": 19,
                     "score": 0.85,
-                    "text": "John Doe"
+                    "text": "Jane Doe"
+                },
+                {
+                    "entity_type": "EMAIL_ADDRESS",
+                    "start": 33,
+                    "end": 48,
+                    "score": 1.0,
+                    "text": "jane@example.com"
                 }
             ]
         },
         {
             "entities": [
                 {
-                    "entity_type": "EMAIL_ADDRESS",
-                    "start": 13,
-                    "end": 28,
-                    "score": 1.0,
-                    "text": "john@example.com"
+                    "entity_type": "PHONE_NUMBER",
+                    "start": 19,
+                    "end": 27,
+                    "score": 0.9,
+                    "text": "555-1234"
                 }
             ]
         }
