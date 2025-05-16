@@ -9,18 +9,18 @@ logger = logging.getLogger(__name__)
 @lru_cache()
 def get_analyzer() -> AnalyzerEngine:
     """
-    Create and cache the Presidio analyzer engine.
+    Create and cache the Presidio analyzer engine with entity mapping configuration.
     
     Returns:
-        AnalyzerEngine: Configured analyzer instance
+        AnalyzerEngine: Configured analyzer instance with entity mapping
+        
+    Raises:
+        Exception: If analyzer creation fails
     """
     try:
-        logger.info("Creating NLP config...")
-        nlp_config = {
-            "nlp_engine_name": settings.NLP_ENGINE_NAME,
-            "models": [{"lang_code": "en", "model_name": settings.SPACY_MODEL_EN}]
-        }
-        logger.info("NLP config created: %s", nlp_config)
+        logger.info("Creating NLP config with entity mapping...")
+        nlp_config = settings.nlp_configuration
+        logger.debug("NLP config: %s", nlp_config)
         
         logger.info("Creating NLP engine...")
         nlp_engine = NlpEngineProvider(nlp_configuration=nlp_config).create_engine()

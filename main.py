@@ -7,7 +7,7 @@ from app.telemetry import setup_telemetry
 from app.config import settings
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI with versioned title
