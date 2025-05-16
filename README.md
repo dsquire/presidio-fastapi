@@ -25,10 +25,14 @@ A secure, high-performance FastAPI service for detecting Personally Identifiable
 ## Installation
 
 1. Clone the repository
-2. Install dependencies:
+2. Install dependencies and language models:
 ```bash
+# Install package
 pip install -e .
-python -m spacy download en_core_web_lg
+
+# Install required language models
+python -m spacy download en_core_web_lg  # Required: English model
+python -m spacy download es_core_news_lg  # Optional: Spanish model
 ```
 
 ## Environment Variables
@@ -36,11 +40,30 @@ python -m spacy download en_core_web_lg
 Create a `.env` file with the following variables:
 
 ```env
+# NLP Engine Configuration
 NLP_ENGINE_NAME=spacy
 SPACY_MODEL_EN=en_core_web_lg
-MAX_TEXT_LENGTH=102400
-ALLOWED_ORIGINS=http://localhost:3000
-MIN_CONFIDENCE_SCORE=0.5
+SPACY_MODEL_ES=es_core_news_lg  # Optional: For Spanish language support
+
+# API Configuration
+API_VERSION=v1  # API version prefix, e.g., /api/v1/
+MAX_TEXT_LENGTH=102400  # Maximum text length for analysis
+MIN_CONFIDENCE_SCORE=0.5  # Minimum confidence score for PII detection
+
+# Security Settings
+ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+
+# Rate Limiting Settings
+REQUESTS_PER_MINUTE=60  # Number of requests allowed per IP per minute
+BURST_LIMIT=100  # Maximum burst of requests allowed
+BLOCK_DURATION=300  # Duration in seconds to block IPs that exceed limits
+
+# OpenTelemetry Configuration
+OTLP_ENDPOINT=http://localhost:4317  # OpenTelemetry collector endpoint
+OTLP_SECURE=false  # Whether to use TLS for OTLP exporter
+
+# Logging Configuration
+LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, or CRITICAL
 ```
 
 ## API Reference
@@ -50,7 +73,7 @@ MIN_CONFIDENCE_SCORE=0.5
 #### Single Text Analysis
 
 ```bash
-POST /analyze
+POST /api/v1/analyze
 
 Request:
 {
@@ -82,7 +105,7 @@ Response:
 #### Batch Text Analysis
 
 ```bash
-POST /analyze/batch
+POST /api/v1/analyze/batch
 
 Request:
 {
@@ -141,8 +164,9 @@ uvicorn main:app --reload
 ```
 
 API documentation will be available at:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+- Swagger UI: http://localhost:8000/api/v1/docs
+- ReDoc: http://localhost:8000/api/v1/redoc
+- OpenAPI Schema: http://localhost:8000/api/v1/openapi.json
 
 ## Security Considerations
 
@@ -197,12 +221,12 @@ The service includes built-in monitoring endpoints:
 
 ### Health Check
 ```bash
-GET /health
+GET /api/v1/health
 ```
 
 ### Metrics
 ```bash
-GET /metrics
+GET /api/v1/metrics
 
 Response:
 {
