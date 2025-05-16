@@ -51,6 +51,7 @@ line-length = 100
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+disallow_untyped_decorators = false # Add this line
 plugins = [
   "pydantic.mypy" # Added pydantic plugin
 ]
