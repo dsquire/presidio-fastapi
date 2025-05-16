@@ -1,10 +1,13 @@
 from fastapi import APIRouter, HTTPException, Request, status
 from app.models import AnalyzeRequest, AnalyzeResponse, BatchAnalyzeRequest, BatchAnalyzeResponse
 from app.middleware import MetricsMiddleware
+from app.telemetry import trace_method
+from app.config import settings
 from typing import Optional
 import logging
+
 logger = logging.getLogger(__name__)
-router = APIRouter()
+router = APIRouter(prefix=f"/api/{settings.API_VERSION}")
 
 @router.post(
     "/analyze",
@@ -14,6 +17,7 @@ router = APIRouter()
     status_code=status.HTTP_200_OK,
     tags=["Analyzer"]
 )
+@trace_method("analyze_text")
 async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse:
     """Analyze text for personally identifiable information (PII).
     
@@ -91,6 +95,7 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
     status_code=status.HTTP_200_OK,
     tags=["Analyzer"]
 )
+@trace_method("analyze_batch")
 async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnalyzeResponse:
     """Analyze multiple texts for personally identifiable information (PII).
     
@@ -167,6 +172,7 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
     status_code=status.HTTP_200_OK,
     tags=["Monitoring"]
 )
+@trace_method("health_check")
 async def health_check():
     """Check the health status of the service.
     
@@ -182,6 +188,7 @@ async def health_check():
     status_code=status.HTTP_200_OK,
     tags=["Monitoring"]
 )
+@trace_method("metrics")
 async def metrics(request: Request):
     """Get application metrics and statistics.
     

@@ -122,6 +122,16 @@ Response:
 }
 ```
 
+### API Versioning
+
+All API endpoints are versioned and available under `/api/v1/`. The version can be configured using the `API_VERSION` environment variable.
+
+Example versioned endpoints:
+- `/api/v1/analyze`
+- `/api/v1/analyze/batch`
+- `/api/v1/docs`
+- `/api/v1/redoc`
+
 ## Development
 
 To run the development server:
@@ -216,6 +226,33 @@ Response:
     }
 }
 ```
+
+### Distributed Tracing
+
+The service is instrumented with OpenTelemetry for distributed tracing. Traces are exported to an OTLP collector.
+
+Configuration via environment variables:
+```env
+OTLP_ENDPOINT=http://localhost:4317
+OTLP_SECURE=false
+```
+
+Each API endpoint and analyzer operation is traced, providing:
+- Request/response timing
+- Error tracking
+- Function parameters
+- Cross-service dependencies
+
+To view traces:
+1. Start an OpenTelemetry collector
+2. Configure the OTLP endpoint
+3. Use a tracing UI like Jaeger or Zipkin
+
+Trace data includes:
+- HTTP request details
+- PII analysis operations
+- Error details
+- Custom attributes
 
 ## License
 

@@ -3,6 +3,13 @@ from typing import List
 from functools import lru_cache
 
 class Settings(BaseSettings):
+    # API Version
+    API_VERSION: str = "v1"
+    
+    # OpenTelemetry Configuration
+    OTLP_ENDPOINT: str = "http://localhost:4317"
+    OTLP_SECURE: bool = False
+
     NLP_ENGINE_NAME: str = "spacy"
     SPACY_MODEL_EN: str = "en_core_web_lg"
     MAX_TEXT_LENGTH: int = 102400

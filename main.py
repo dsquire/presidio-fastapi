@@ -1,24 +1,39 @@
 """Main application module."""
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from app.api.routes import router
 from app.services.analyzer import get_analyzer
+from app.telemetry import setup_telemetry
+from app.config import settings
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Presidio Analyzer API")
+# Initialize FastAPI with versioned title
+app = FastAPI(
+    title=f"Presidio Analyzer API {settings.API_VERSION}",
+    docs_url=f"/api/{settings.API_VERSION}/docs",
+    redoc_url=f"/api/{settings.API_VERSION}/redoc",
+    openapi_url=f"/api/{settings.API_VERSION}/openapi.json"
+)
 
 @app.on_event("startup")
 async def startup():
     try:
         logger.info("Starting up application...")
+        
+        # Initialize OpenTelemetry
+        logger.info("Configuring OpenTelemetry...")
+        setup_telemetry(app)
+        
+        # Initialize analyzer
         logger.info("Initializing analyzer...")
         analyzer = get_analyzer()
-        logger.info("Analyzer initialized successfully")
         app.state.analyzer = analyzer
+        
         logger.info("Application startup complete")
+        
     except Exception as e:
         logger.error(f"Error during startup: {str(e)}")
         logger.exception(e)
@@ -33,4 +48,9 @@ app.include_router(router)
 
 @app.get("/")
 async def read_root():
-    return {"status": "ok"}
+    """Redirect to the latest API version documentation."""
+    return {
+        "status": "ok",
+        "message": f"Please use the API at /api/{settings.API_VERSION}",
+        "docs_url": f"/api/{settings.API_VERSION}/docs"
+    }
