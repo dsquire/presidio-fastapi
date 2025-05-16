@@ -31,7 +31,7 @@ Please perform a comprehensive code review and analysis of this Python project, 
 - Secure coding practices
 
 6. Documentation
-- Docstrings (Google/NumPy style)
+- Use Google style docstrings
 - API documentation
 - Inline comments quality
 - README and setup instructions
