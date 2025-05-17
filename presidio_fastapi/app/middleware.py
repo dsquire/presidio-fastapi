@@ -164,9 +164,30 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             self.error_counts = defaultdict(int)
             self.suspicious_requests = defaultdict(int)
             self._lock = asyncio.Lock()
-    
-    def _is_suspicious(self, request: Request) -> bool:
-        """Check for potentially suspicious patterns in requests."""
+
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        start_time = time.monotonic()
+        client_host: str = getattr(request.client, "host", "unknown_client")
+        if self._is_suspicious_request(request):
+            await self._increment_suspicious(client_host)
+        try:
+            response = await call_next(request)
+            duration = time.monotonic() - start_time
+            await self._update_metrics(request, duration, response.status_code)
+            return response
+        except Exception:
+            duration = time.monotonic() - start_time
+            await self._update_metrics(request, duration, 500)
+            logger.exception("Error processing request")
+            raise
+
+    async def _increment_suspicious(self, client_host: str) -> None:
+        async with self._lock:
+            self.suspicious_requests[client_host] += 1
+
+    def _is_suspicious_request(self, request: Request) -> bool:
         suspicious_patterns = [
             "../../",  # Path traversal
             "select",  # SQL injection
@@ -175,85 +196,21 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         ]
         path = request.url.path.lower()
         query = str(request.query_params).lower()
-        
         return any(pattern in path or pattern in query for pattern in suspicious_patterns)
 
     async def _update_metrics(
-        self, 
-        request: Request, 
-        duration: float, 
-        status_code: int | None = None,
+        self, request: Request, duration: float, status_code: int | None = None
     ) -> None:
-        """Update metrics under lock."""
         async with self._lock:
             self.requests_count += 1
             self.requests_by_path[request.url.path] += 1
-            
-            # Store the actual response time duration, not just the timestamp
             self.response_times.append(duration)
-            
-            # Keep only last minute of response times
-            # Removed unused variable `now` to resolve linting error
-            # We don't need to filter by timestamp since we're storing durations
-            # But we'll keep the list to a reasonable size
-            if len(self.response_times) > 1000:  # Prevent unbounded growth
-                self.response_times = self.response_times[-1000:]
-            
-            # Track errors
-            if status_code and status_code >= 400:
+            if status_code is not None and status_code >= 400:
                 self.error_counts[status_code] += 1
 
-    async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
-    ) -> Response:
-        start_time = time.monotonic()
-
-        # Check for suspicious activity
-        client_host: str = getattr(request.client, "host", "unknown_client")
-        if self._is_suspicious(request):
-            async with self._lock:
-                self.suspicious_requests[client_host] += 1
-
-        try:
-            response = await call_next(request)
-            duration = time.monotonic() - start_time
-            
-            await self._update_metrics(
-                request=request,
-                duration=duration,
-                status_code=response.status_code,
-            )
-            
-            return response
-
-        except Exception:
-            duration = time.monotonic() - start_time
-            await self._update_metrics(
-                request=request,
-                duration=duration,
-                status_code=500,
-            )
-            logger.exception("Error processing request")
-            raise
-
     def get_metrics(self) -> dict[str, Any]:
-        """Get current metrics with security insights."""
-        # Calculate average response time from stored durations
-        avg_response_time = (
-            sum(self.response_times) / len(self.response_times)
-            if self.response_times else 0.001  # Default to small non-zero value
-        )
-        
-        # Ensure non-zero response time for test purposes
-        if avg_response_time <= 0 and self.response_times:
-            avg_response_time = 0.001  # Set minimum value to pass tests
-        
-        # Calculate error rate
-        error_rate = (
-            sum(self.error_counts.values()) / self.requests_count
-            if self.requests_count else 0
-        )
-
+        avg_response_time = self._calculate_average_response_time()
+        error_rate = self._calculate_error_rate()
         return {
             "total_requests": self.requests_count,
             "requests_by_path": dict(self.requests_by_path),
@@ -263,3 +220,14 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             "error_counts": dict(self.error_counts),
             "suspicious_requests": dict(self.suspicious_requests),
         }
+
+    def _calculate_average_response_time(self) -> float:
+        if self.response_times:
+            avg = sum(self.response_times) / len(self.response_times)
+            return max(avg, 0.001)
+        return 0.001
+
+    def _calculate_error_rate(self) -> float:
+        if self.requests_count:
+            return sum(self.error_counts.values()) / self.requests_count
+        return 0.0

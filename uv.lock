@@ -843,7 +843,7 @@ wheels = [
 [[package]]
 name = "presidio-fastapi"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["all"] },
     { name = "opentelemetry-api" },

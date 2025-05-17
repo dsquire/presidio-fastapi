@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 
-from app.config import settings
+from presidio_fastapi.app.config import settings
 
 
 class AnalyzeRequest(BaseModel):

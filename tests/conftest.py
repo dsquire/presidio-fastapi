@@ -7,7 +7,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.main import create_app
+from presidio_fastapi.app.main import create_app
 
 # Test constants
 REQUESTS_PER_MINUTE = 60

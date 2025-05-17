@@ -1,10 +1,12 @@
+"""Analyzer service for PII detection."""
+
 import logging
 from functools import lru_cache
 
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
-from app.config import settings
+from presidio_fastapi.app.config import settings
 
 logger = logging.getLogger(__name__)
 # Set Presidio's logger to INFO level to suppress debug messages
@@ -58,3 +60,6 @@ def get_analyzer() -> AnalyzerEngine:
         logger.error("Error creating analyzer: %s", str(e))
         logger.exception(e)
         raise
+
+
+__all__ = ["get_analyzer"]

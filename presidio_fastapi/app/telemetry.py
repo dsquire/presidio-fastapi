@@ -13,7 +13,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace.status import Status, StatusCode
 
-from app.config import settings
+from presidio_fastapi.app.config import settings
 
 logger = logging.getLogger(__name__)
 

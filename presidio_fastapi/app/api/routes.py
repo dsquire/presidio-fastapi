@@ -1,7 +1,4 @@
-"""Routes module for the Presidio FastAPI API.
-
-This module contains all the route handlers for the API endpoints.
-"""
+"""Routes module for the Presidio FastAPI API."""
 
 import logging
 import time
@@ -9,15 +6,15 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from app.middleware import MetricsMiddleware
-from app.models import (
+from presidio_fastapi.app.middleware import MetricsMiddleware
+from presidio_fastapi.app.models import (
     AnalyzeRequest,
     AnalyzeResponse,
     BatchAnalyzeRequest,
     BatchAnalyzeResponse,
     Entity,
 )
-from app.telemetry import trace_method
+from presidio_fastapi.app.telemetry import trace_method
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -135,71 +132,53 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
 
     This endpoint uses Microsoft Presidio to detect PII entities in a batch
     of texts provided in the request.
-
-    Args:
-        request: The request body containing texts to analyze.
-            It includes the following fields:
-            - texts (List[str]): A list of input texts to analyze.
-            - language (str): Two-letter language code (default: "en").
-        req: FastAPI request object to access application state,
-            specifically the Presidio analyzer instance.
-
-    Returns:
-        A BatchAnalyzeResponse object containing analysis results for each text.
-        Each result includes:
-        - entities (List[dict]): List of detected PII entities for that text.
-        - cached (bool): Whether the result was from cache (Note: caching not
-          explicitly implemented in this snippet for batch items).
-
-    Raises:
-        HTTPException:
-            - 400 (Bad Request): If input parameters are invalid.
-            - 503 (Service Unavailable): If the analyzer service is not available.
-            - 500 (Internal Server Error): For unexpected errors during analysis.
     """
     try:
-        analyzer = req.app.state.analyzer
-        if not analyzer:
-            logger.exception("Analyzer service not available")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Analyzer service not available",
-            )
-
-        results = []
-        for text in request.texts:
-            try:
-                analyzed = analyzer.analyze(
-                    text=text,
-                    language=request.language,
-                )
-
-                entities = [
-                    Entity(
-                        entity_type=result.entity_type,
-                        start=result.start,
-                        end=result.end,
-                        score=result.score,
-                        text=text[result.start : result.end],
-                    )
-                    for result in analyzed
-                ]
-
-                results.append(AnalyzeResponse(entities=entities))
-
-            except Exception as e:
-                logger.exception("Error analyzing text: %s", str(e))
-                results.append(AnalyzeResponse(entities=[]))
-
+        analyzer = _get_analyzer_from_request(req)
+        results = [_analyze_single_text(analyzer, text, request.language) for text in request.texts]
         logger.info("Processed %d texts in batch", len(results))
         return BatchAnalyzeResponse(results=results)
-
     except Exception as e:
         logger.exception("Unexpected error during batch analysis")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error occurred",
         ) from e
+
+
+def _get_analyzer_from_request(req: Request):
+    analyzer = getattr(req.app.state, "analyzer", None)
+    if not analyzer:
+        logger.exception("Analyzer service not available")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Analyzer service not available",
+        )
+    return analyzer
+
+
+def _analyze_single_text(analyzer, text: str, language: str):
+    try:
+        analyzed = analyzer.analyze(
+            text=text,
+            language=language,
+        )
+
+        entities = [
+            Entity(
+                entity_type=result.entity_type,
+                start=result.start,
+                end=result.end,
+                score=result.score,
+                text=text[result.start : result.end],
+            )
+            for result in analyzed
+        ]
+
+        return AnalyzeResponse(entities=entities)
+    except Exception as e:
+        logger.exception("Error analyzing text: %s", str(e))
+        return AnalyzeResponse(entities=[])
 
 
 @router.get(

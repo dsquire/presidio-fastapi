@@ -6,11 +6,15 @@ from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI
 
-from app.api.routes import router
-from app.config import settings
-from app.middleware import MetricsMiddleware, RateLimiterMiddleware, SecurityHeadersMiddleware
-from app.services.analyzer import get_analyzer
-from app.telemetry import setup_telemetry
+from presidio_fastapi.app.api.routes import router
+from presidio_fastapi.app.config import settings
+from presidio_fastapi.app.middleware import (
+    MetricsMiddleware,
+    RateLimiterMiddleware,
+    SecurityHeadersMiddleware,
+)
+from presidio_fastapi.app.services.analyzer import get_analyzer
+from presidio_fastapi.app.telemetry import setup_telemetry
 
 # Configure logging
 logging.basicConfig(level=settings.log_level)
@@ -134,11 +138,11 @@ app = create_app()
 
 if __name__ == "__main__":
     # This block is for development purposes only
-    # Use a proper ASGI server like Uvicorn or Hypercorn in production
+    # For proper execution, use the run.py script in the project root
     import uvicorn
 
     uvicorn.run(
-        app,
+        "presidio_fastapi.app.main:app",
         host=settings.SERVER_HOST,
         port=settings.SERVER_PORT,
         log_level=settings.LOG_LEVEL.lower(),
