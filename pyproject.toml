@@ -1,5 +1,5 @@
 [project]
-name = "presidio-fastapi"
+name = "presidio_fastapi"
 version = "0.1.0"
 description = "A FastAPI service for detecting PII using Microsoft Presidio"
 readme = "README.md"

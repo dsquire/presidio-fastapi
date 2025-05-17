@@ -26,8 +26,8 @@ A secure, high-performance FastAPI service for detecting Personally Identifiable
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/presidio-fastapi.git
-   cd presidio-fastapi
+   git clone https://github.com/your-username/presidio_fastapi.git
+   cd presidio_fastapi
    ```
 
 2. **Create a Virtual Environment**:
