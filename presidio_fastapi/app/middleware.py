@@ -29,7 +29,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
         # Allow Swagger UI's CSS/JS from cdn.jsdelivr.net, inline scripts, and FastAPI's favicon
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
@@ -40,7 +42,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "connect-src 'self';"
         )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=()"
+        )
         return response
 
 
@@ -56,7 +60,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app: Any,
-        metrics: Optional['MetricsMiddleware'] = None,  # Allow None as a valid value
+        metrics: Optional["MetricsMiddleware"] = None,  # Allow None as a valid value
         requests_per_minute: int = 60,
         burst_limit: int = 100,
         block_duration: int = 300,  # 5 minutes
@@ -93,7 +97,9 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         async with self._lock:
             # Clean old requests
             self.requests[client_ip] = [
-                req_time for req_time in self.requests[client_ip] if now_ts - req_time < 60
+                req_time
+                for req_time in self.requests[client_ip]
+                if now_ts - req_time < 60
             ]
 
             # Check burst limit
@@ -131,7 +137,9 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Remaining"] = str(
             self.requests_per_minute - len(self.requests[client_ip])
         )
-        response.headers["X-RateLimit-Reset"] = str(int(now_ts - self.requests[client_ip][0]))
+        response.headers["X-RateLimit-Reset"] = str(
+            int(now_ts - self.requests[client_ip][0])
+        )
 
         return response
 
@@ -146,7 +154,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
     suspicious_requests: dict[str, int]
     _lock: asyncio.Lock
 
-    def __init__(self, app: Any, metrics: Optional['MetricsMiddleware'] = None) -> None:
+    def __init__(self, app: Any, metrics: Optional["MetricsMiddleware"] = None) -> None:
         super().__init__(app)
         # If an existing instance is provided, use its state
         if metrics is not None:
@@ -196,7 +204,9 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         ]
         path = request.url.path.lower()
         query = str(request.query_params).lower()
-        return any(pattern in path or pattern in query for pattern in suspicious_patterns)
+        return any(
+            pattern in path or pattern in query for pattern in suspicious_patterns
+        )
 
     async def _update_metrics(
         self, request: Request, duration: float, status_code: int | None = None

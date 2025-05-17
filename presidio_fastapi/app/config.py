@@ -75,7 +75,7 @@ class Settings(BaseSettings):
         "URL": ["URL", "URI"],
     }
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def _strip_inline_comments(cls, data: Any) -> Any:
         if isinstance(data, dict):
@@ -96,7 +96,11 @@ class Settings(BaseSettings):
             A list of allowed CORS origins split from the ALLOWED_ORIGINS setting.
             If no origins are configured, returns an empty list.
         """
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+        return [
+            origin.strip()
+            for origin in self.ALLOWED_ORIGINS.split(",")
+            if origin.strip()
+        ]
 
     @property
     def nlp_configuration(self) -> dict[str, Any]:
@@ -104,7 +108,7 @@ class Settings(BaseSettings):
 
         This configuration includes the NLP engine name and a list of models
         with their language codes, model names, and entity mappings.
-        The Spanish model is included only if SPACY_MODEL_ES is configured 
+        The Spanish model is included only if SPACY_MODEL_ES is configured
         with a valid model name.
 
         Returns:

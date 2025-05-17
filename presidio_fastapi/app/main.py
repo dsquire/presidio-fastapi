@@ -51,7 +51,7 @@ async def startup_event(app: FastAPI) -> None:
         Exception: If the analyzer fails to initialize.
     """
     logger.info("Application startup")
-    
+
     # Initialize analyzer
     try:
         logger.info("Initializing analyzer...")
@@ -61,7 +61,7 @@ async def startup_event(app: FastAPI) -> None:
     except Exception as e:
         logger.error("Failed to initialize analyzer: %s", str(e))
         raise
-    
+
     logger.info("Application startup complete")
 
 
@@ -108,7 +108,7 @@ def create_app() -> FastAPI:
         openapi_url=f"/api/{settings.API_VERSION}/openapi.json",
         lifespan=lifespan,
     )
-    
+
     # Setup Telemetry early, before other middleware or routes that might depend on it
     # or conflict with its own middleware additions.
     logger.info("Setting up telemetry in create_app...")
@@ -119,11 +119,11 @@ def create_app() -> FastAPI:
     app.state.metrics = metrics_middleware
     # Important: Add the INSTANCE we created to app.middleware, not just the class
     app.add_middleware(MetricsMiddleware, metrics=metrics_middleware)
-    
+
     # Initialize security middleware
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RateLimiterMiddleware)
-    
+
     # Include API routes with the correct prefix
     app.include_router(
         router,

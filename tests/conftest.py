@@ -23,7 +23,7 @@ async def app_with_lifespan() -> AsyncGenerator[FastAPI, None]:
         FastAPI: The application instance.
     """
     app = create_app()
-    
+
     async with app.router.lifespan_context(app):
         # Wait for any background tasks
         await asyncio.sleep(0.1)

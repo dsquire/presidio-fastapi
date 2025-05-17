@@ -20,10 +20,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Security :: Privacy",
 ]
-# Explicitly define the package for better module structure
-packages = [
-    { include = "presidio_fastapi" }
-]
 dependencies = [
     "fastapi[all]>=0.115.12",
     "presidio-analyzer>=2.2.358",
@@ -58,14 +54,32 @@ line-length = 100
 
 [tool.mypy]
 python_version = "3.12"
-strict = true
-ignore_missing_imports = true
-disallow_untyped_decorators = false # Add this line
+strict = true # Enable all optional error checking flags for thorough type safety.
+
+# Customize strict flags:
+# 'strict = true' normally enables 'disallow_untyped_decorators = true'.
+# We explicitly set it to false here to allow decorators without type annotations if that's intended.
+disallow_untyped_decorators = false
+
+# Import handling:
+ignore_missing_imports = true # Suppress errors for imports that don't have type stubs.
+
+# Plugins for enhanced type checking with specific libraries:
 plugins = [
-  "pydantic.mypy" # Added pydantic plugin
+  "pydantic.mypy" # Essential for validating Pydantic models.
 ]
-show_error_codes = true
-exclude = "^presidio_fastapi.egg-info/"
+
+# Error reporting preferences:
+show_error_codes = true # Display [error-code] in messages for easier reference.
+
+# Files and directories to exclude from type checking (paths are regex against absolute paths):
+exclude = [
+    "^presidio_fastapi\\.egg-info/", # Build artifacts for the current project (at project root).
+    "^\\.venv/",                   # Python virtual environments (typically at project root).
+    "/__pycache__/",              # Python bytecode cache folders (anywhere in path).
+    "^build/",                    # General build output folder (at project root).
+    "^dist/",                     # General distribution folder (at project root).
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

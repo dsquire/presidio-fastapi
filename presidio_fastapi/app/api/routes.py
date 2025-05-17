@@ -5,6 +5,7 @@ import time
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request, status
+from presidio_analyzer import AnalyzerEngine
 
 from presidio_fastapi.app.middleware import MetricsMiddleware
 from presidio_fastapi.app.models import (
@@ -30,7 +31,7 @@ router = APIRouter()
 @trace_method("root")
 async def root() -> Dict[str, str]:
     """Root API endpoint.
-    
+
     Returns:
         A simple status message confirming the API is running.
     """
@@ -61,7 +62,7 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
             specifically the Presidio analyzer instance.
 
     Returns:
-        AnalyzeResponse: An AnalyzeResponse object containing a list of 
+        AnalyzeResponse: An AnalyzeResponse object containing a list of
                          detected PII entities. Each entity includes:
                          - entity_type (str): Type of PII detected.
                          - start (int): Starting character position.
@@ -127,7 +128,9 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
     tags=["Analyzer"],
 )
 @trace_method("analyze_batch")
-async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnalyzeResponse:
+async def analyze_batch(
+    request: BatchAnalyzeRequest, req: Request
+) -> BatchAnalyzeResponse:
     """Analyze multiple texts for personally identifiable information (PII).
 
     This endpoint uses Microsoft Presidio to detect PII entities in a batch
@@ -135,7 +138,10 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
     """
     try:
         analyzer = _get_analyzer_from_request(req)
-        results = [_analyze_single_text(analyzer, text, request.language) for text in request.texts]
+        results = [
+            _analyze_single_text(analyzer, text, request.language)
+            for text in request.texts
+        ]
         logger.info("Processed %d texts in batch", len(results))
         return BatchAnalyzeResponse(results=results)
     except Exception as e:
@@ -146,7 +152,7 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
         ) from e
 
 
-def _get_analyzer_from_request(req: Request):
+def _get_analyzer_from_request(req: Request) -> AnalyzerEngine:
     analyzer = getattr(req.app.state, "analyzer", None)
     if not analyzer:
         logger.exception("Analyzer service not available")
@@ -157,7 +163,9 @@ def _get_analyzer_from_request(req: Request):
     return analyzer
 
 
-def _analyze_single_text(analyzer, text: str, language: str):
+def _analyze_single_text(
+    analyzer: AnalyzerEngine, text: str, language: str
+) -> list[Entity]:
     try:
         analyzed = analyzer.analyze(
             text=text,
@@ -224,16 +232,18 @@ async def metrics(request: Request) -> Dict[str, Any]:
     """
     # Record start time to calculate response time for this request
     start_time = time.monotonic()
-    
-    metrics_middleware: MetricsMiddleware | None = getattr(request.app.state, "metrics", None)
+
+    metrics_middleware: MetricsMiddleware | None = getattr(
+        request.app.state, "metrics", None
+    )
     if not isinstance(metrics_middleware, MetricsMiddleware):
         logger.exception("Metrics middleware not configured")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Metrics middleware not configured",
         )
-    
-    # Always count the current request to metrics endpoint 
+
+    # Always count the current request to metrics endpoint
     # This ensures the tests pass by guaranteeing that metrics endpoint counts itself
     metrics_middleware.requests_count += 1
     metrics_middleware.requests_by_path[request.url.path] = (
@@ -241,16 +251,16 @@ async def metrics(request: Request) -> Dict[str, Any]:
     )
     # Add a small artificial delay to ensure non-zero response time
     time.sleep(0.01)  # 10ms delay
-    
+
     # For test purposes, handle the case where we need to ensure there are requests recorded
     # Test expects total_requests >= 3, including this request
     if metrics_middleware.requests_count < 3:
         # If somehow the count is still less than 3, bump it to ensure test passes
         # This is just a safeguard for the test - we should generally have accurate counts
         metrics_middleware.requests_count = 3
-    
+
     # Add this request's response time to the metrics
     duration = time.monotonic() - start_time
     metrics_middleware.response_times.append(duration)
-        
+
     return metrics_middleware.get_metrics()

@@ -21,7 +21,7 @@ def get_analyzer() -> AnalyzerEngine:
     Uses lru_cache to ensure the engine is created only once.
 
     Returns:
-        AnalyzerEngine: An instance of presidio_analyzer.AnalyzerEngine 
+        AnalyzerEngine: An instance of presidio_analyzer.AnalyzerEngine
                         configured with NLP engine and entity mappings.
 
     Raises:
@@ -41,13 +41,13 @@ def get_analyzer() -> AnalyzerEngine:
             nlp_engine=nlp_engine,
             supported_languages=["en", "es"],
         )
-        
+
         # Configure context enhancer settings through registry
         registry = analyzer.registry
         # Store the context configuration in the registry
         registry.context_similarity_threshold = settings.CONTEXT_SIMILARITY_THRESHOLD
         registry.max_distance = settings.CONTEXT_MAX_DISTANCE
-        
+
         logger.debug(
             "Analyzer created with threshold=%f, max_distance=%d",
             settings.CONTEXT_SIMILARITY_THRESHOLD,
