@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.middleware import RateLimiterMiddleware, MetricsMiddleware
 
 # Test constants
 REQUESTS_PER_MINUTE = 60
@@ -18,7 +17,11 @@ BLOCK_DURATION = 1
 
 @pytest.fixture
 async def app_with_lifespan() -> AsyncGenerator[FastAPI, None]:
-    """Create application and run lifespan events."""
+    """Provide a FastAPI app instance with lifespan events executed.
+
+    Yields:
+        FastAPI: The application instance.
+    """
     app = create_app()
     
     async with app.router.lifespan_context(app):
@@ -29,7 +32,10 @@ async def app_with_lifespan() -> AsyncGenerator[FastAPI, None]:
 
 @pytest.fixture
 def client(app_with_lifespan: FastAPI) -> TestClient:
-    """Create a test client for the FastAPI application.
+    """Create a test client for the FastAPI app with lifespan setup.
+
+    Args:
+        app_with_lifespan: The FastAPI app instance with lifespan events.
 
     Returns:
         TestClient: A configured test client for making requests.

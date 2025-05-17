@@ -6,10 +6,10 @@ from fastapi.testclient import TestClient
 
 
 def test_root_endpoint(client: TestClient) -> None:
-    """Test the root endpoint returns correct status.
+    """Verify the root endpoint returns a status message.
 
     Args:
-        client: FastAPI test client
+        client: FastAPI test client for making requests.
     """
     response = client.get("/")
     assert response.status_code == HTTPStatus.OK
@@ -18,10 +18,10 @@ def test_root_endpoint(client: TestClient) -> None:
 
 
 def test_health_check(client: TestClient) -> None:
-    """Test the health check endpoint.
+    """Ensure the health check endpoint reports the service as healthy.
 
     Args:
-        client: FastAPI test client
+        client: FastAPI test client for making requests.
     """
     response = client.get("/health")
     assert response.status_code == HTTPStatus.OK
@@ -29,10 +29,10 @@ def test_health_check(client: TestClient) -> None:
 
 
 def test_analyze_endpoint_success(client: TestClient) -> None:
-    """Test successful PII analysis.
+    """Test successful analysis of text for PII entities.
 
     Args:
-        client: FastAPI test client
+        client: FastAPI test client for making requests.
     """
     test_text = "My name is John Doe and my email is john@example.com"
     response = client.post(

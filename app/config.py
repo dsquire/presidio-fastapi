@@ -4,32 +4,30 @@ import logging
 from functools import lru_cache
 from typing import Any
 
-from pydantic_settings import BaseSettings
 from pydantic import model_validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """Manages application settings using Pydantic BaseSettings.
-
-    Settings are loaded from environment variables and a .env file.
+    """Application settings managed via Pydantic BaseSettings.
 
     Attributes:
-        API_VERSION (str): The version of the API.
-        OTLP_ENDPOINT (str): The OTLP endpoint for OpenTelemetry.
-        OTLP_SECURE (bool): Whether to use a secure connection for OTLP.
-        REQUESTS_PER_MINUTE (int): Allowed requests per minute for rate limiting.
-        BURST_LIMIT (int): Burst limit for rate limiting.
-        BLOCK_DURATION (int): Duration in seconds to block IPs exceeding limits.
-        LOG_LEVEL (str): The logging level for the application.
-        SERVER_HOST (str): The host address for the server.
-        SERVER_PORT (int): The port number for the server.
-        NLP_ENGINE_NAME (str): The name of the NLP engine (e.g., "spacy").
-        SPACY_MODEL_EN (str): The Spacy model for English.
-        SPACY_MODEL_ES (str | None): The optional Spacy model for Spanish.
-        MAX_TEXT_LENGTH (int): Maximum allowed text length for analysis.
-        ALLOWED_ORIGINS (str): Comma-separated string of allowed CORS origins.
-        MIN_CONFIDENCE_SCORE (float): Minimum confidence score for PII detection.
-        ENTITY_MAPPING (dict[str, list[str]]): Mapping of Presidio entities.
+        API_VERSION: The version of the API.
+        OTLP_ENDPOINT: The OTLP endpoint for OpenTelemetry.
+        OTLP_SECURE: Whether to use a secure connection for OTLP.
+        REQUESTS_PER_MINUTE: Allowed requests per minute for rate limiting.
+        BURST_LIMIT: Burst limit for rate limiting.
+        BLOCK_DURATION: Duration in seconds to block IPs exceeding limits.
+        LOG_LEVEL: The logging level for the application.
+        SERVER_HOST: The host address for the server.
+        SERVER_PORT: The port number for the server.
+        NLP_ENGINE_NAME: The name of the NLP engine (e.g., "spacy").
+        SPACY_MODEL_EN: The Spacy model for English.
+        SPACY_MODEL_ES: The optional Spacy model for Spanish.
+        MAX_TEXT_LENGTH: Maximum allowed text length for analysis.
+        ALLOWED_ORIGINS: Comma-separated string of allowed CORS origins.
+        MIN_CONFIDENCE_SCORE: Minimum confidence score for PII detection.
+        ENTITY_MAPPING: Mapping of Presidio entities.
     """
 
     # API Version

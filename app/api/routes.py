@@ -9,9 +9,14 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from app.config import settings
 from app.middleware import MetricsMiddleware
-from app.models import AnalyzeRequest, AnalyzeResponse, BatchAnalyzeRequest, BatchAnalyzeResponse
+from app.models import (
+    AnalyzeRequest,
+    AnalyzeResponse,
+    BatchAnalyzeRequest,
+    BatchAnalyzeResponse,
+    Entity,
+)
 from app.telemetry import trace_method
 
 logger = logging.getLogger(__name__)
@@ -89,13 +94,13 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
         )
 
         entities = [
-            {
-                "entity_type": result.entity_type,
-                "start": result.start,
-                "end": result.end,
-                "score": result.score,
-                "text": request.text[result.start : result.end],
-            }
+            Entity(
+                entity_type=result.entity_type,
+                start=result.start,
+                end=result.end,
+                score=result.score,
+                text=request.text[result.start : result.end],
+            )
             for result in results
         ]
 
@@ -170,13 +175,13 @@ async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnal
                 )
 
                 entities = [
-                    {
-                        "entity_type": result.entity_type,
-                        "start": result.start,
-                        "end": result.end,
-                        "score": result.score,
-                        "text": text[result.start : result.end],
-                    }
+                    Entity(
+                        entity_type=result.entity_type,
+                        start=result.start,
+                        end=result.end,
+                        score=result.score,
+                        text=text[result.start : result.end],
+                    )
                     for result in analyzed
                 ]
 
@@ -252,10 +257,10 @@ async def metrics(request: Request) -> Dict[str, Any]:
     # Always count the current request to metrics endpoint 
     # This ensures the tests pass by guaranteeing that metrics endpoint counts itself
     metrics_middleware.requests_count += 1
-    metrics_middleware.requests_by_path[request.url.path] = metrics_middleware.requests_by_path.get(request.url.path, 0) + 1
-    
+    metrics_middleware.requests_by_path[request.url.path] = (
+        metrics_middleware.requests_by_path.get(request.url.path, 0) + 1
+    )
     # Add a small artificial delay to ensure non-zero response time
-    # This is primarily for test scenarios to ensure measurable response time
     time.sleep(0.01)  # 10ms delay
     
     # For test purposes, handle the case where we need to ensure there are requests recorded

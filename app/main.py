@@ -5,11 +5,10 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 
 from app.api.routes import router
 from app.config import settings
-from app.middleware import SecurityHeadersMiddleware, RateLimiterMiddleware, MetricsMiddleware
+from app.middleware import MetricsMiddleware, RateLimiterMiddleware, SecurityHeadersMiddleware
 from app.services.analyzer import get_analyzer
 from app.telemetry import setup_telemetry
 

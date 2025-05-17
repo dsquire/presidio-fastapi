@@ -22,6 +22,59 @@ A secure, high-performance FastAPI service for detecting Personally Identifiable
 - Presidio Analyzer
 - Spacy language models
 
+## Setup Instructions
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/your-username/presidio-fastapi.git
+   cd presidio-fastapi
+   ```
+
+2. **Create a Virtual Environment**:
+   ```bash
+   python -m venv .venv
+   # Activate the virtual environment
+   # On Windows:
+   .venv\Scripts\Activate.ps1
+   # On macOS/Linux:
+   source .venv/bin/activate
+   ```
+
+3. **Install Dependencies**:
+   ```bash
+   pip install -e .
+   ```
+
+4. **Install Language Models**:
+   ```bash
+   python -m spacy download en_core_web_lg
+   python -m spacy download es_core_news_lg  # Optional for Spanish support
+   ```
+
+5. **Set Up Environment Variables**:
+   Create a `.env` file in the project root with the following content:
+   ```env
+   NLP_ENGINE_NAME=spacy
+   SPACY_MODEL_EN=en_core_web_lg
+   SPACY_MODEL_ES=es_core_news_lg
+   API_VERSION=v1
+   MAX_TEXT_LENGTH=102400
+   MIN_CONFIDENCE_SCORE=0.5
+   ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+   REQUESTS_PER_MINUTE=60
+   BURST_LIMIT=100
+   BLOCK_DURATION=300
+   OTLP_ENDPOINT=http://localhost:4317
+   OTLP_SECURE=false
+   LOG_LEVEL=INFO
+   ```
+
+6. **Run the Application**:
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+   The API will be available at `http://localhost:8000`.
+
 ## Installation
 
 1. Clone the repository
@@ -133,16 +186,16 @@ pytest
 
 #### Single Text Analysis
 
-```bash
-POST /api/v1/analyze
-
-Request:
+Send a POST request to `/api/v1/analyze` with the following payload:
+```json
 {
     "text": "My name is John Doe and my email is john@example.com",
     "language": "en"
 }
+```
 
 Response:
+```json
 {
     "entities": [
         {
@@ -165,12 +218,8 @@ Response:
 
 #### Batch Text Analysis
 
-This endpoint allows analyzing multiple pieces of text in a single request.
-
-```bash
-POST /api/v1/analyze/batch
-
-Request:
+Send a POST request to `/api/v1/analyze/batch` with the following payload:
+```json
 {
     "texts": [
         {"text": "My name is Jane Doe and my email is jane@example.com"},
@@ -178,8 +227,10 @@ Request:
     ],
     "language": "en"
 }
+```
 
 Response:
+```json
 {
     "results": [
         {

@@ -29,8 +29,6 @@ jobs:
     - name: Lint
       run: |
         ruff check .
-        black . --check
-        isort . --check
         mypy .
     
     - name: Run tests

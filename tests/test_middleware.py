@@ -6,16 +6,16 @@ from http import HTTPStatus
 from fastapi.testclient import TestClient
 
 # Constants for rate limiting tests
-from .conftest import BURST_LIMIT, REQUESTS_PER_MINUTE, BLOCK_DURATION
+from .conftest import BURST_LIMIT
 
 RESPONSE_TIME_SLEEP = 0.1  # seconds
 
 
 def test_security_headers(client: TestClient) -> None:
-    """Test security headers are added to responses.
+    """Ensure security headers are correctly added to all responses.
 
     Args:
-        client: FastAPI test client
+        client: FastAPI test client for making requests.
     """
     response = client.get("/")
     assert response.headers["X-Content-Type-Options"] == "nosniff"
@@ -26,10 +26,10 @@ def test_security_headers(client: TestClient) -> None:
 
 
 def test_rate_limiter(client: TestClient) -> None:
-    """Test rate limiting functionality.
+    """Verify that the rate limiter enforces request limits per IP.
 
     Args:
-        client: FastAPI test client
+        client: FastAPI test client for making requests.
     """
     # Make burst_limit + 1 requests
     for _ in range(BURST_LIMIT + 1):
@@ -43,10 +43,10 @@ def test_rate_limiter(client: TestClient) -> None:
 
 
 def test_metrics_endpoint(client: TestClient) -> None:
-    """Test metrics collection and endpoint.
+    """Check that metrics are collected and exposed via the metrics endpoint.
 
     Args:
-        client: FastAPI test client
+        client: FastAPI test client for making requests.
     """
     # Make some requests
     client.get("/")

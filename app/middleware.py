@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
@@ -16,7 +16,11 @@ logger = logging.getLogger(__name__)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Add security headers to all responses."""
+    """Middleware to add security headers to all HTTP responses.
+
+    Ensures headers like X-Content-Type-Options and Content-Security-Policy
+    are included in every response.
+    """
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -41,11 +45,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
-    """Rate limit requests by IP address with burst protection."""
+    """Middleware to enforce rate limiting per IP address.
+
+    Attributes:
+        requests_per_minute: Allowed requests per minute.
+        burst_limit: Maximum burst of requests allowed.
+        block_duration: Duration in seconds to block IPs exceeding limits.
+    """
 
     def __init__(
         self,
         app: Any,
+        metrics: Optional['MetricsMiddleware'] = None,  # Allow None as a valid value
         requests_per_minute: int = 60,
         burst_limit: int = 100,
         block_duration: int = 300,  # 5 minutes
@@ -175,8 +186,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             self.response_times.append(duration)
             
             # Keep only last minute of response times
-            now = time.monotonic()
-            cutoff = now - 60  # 1 minute ago
+            # Removed unused variable `now` to resolve linting error
             # We don't need to filter by timestamp since we're storing durations
             # But we'll keep the list to a reasonable size
             if len(self.response_times) > 1000:  # Prevent unbounded growth
@@ -209,7 +219,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             
             return response
 
-        except Exception as e:
+        except Exception:
             duration = time.monotonic() - start_time
             await self._update_metrics(
                 request=request,

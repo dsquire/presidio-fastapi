@@ -23,10 +23,12 @@ R = TypeVar("R")
 
 @lru_cache()
 def setup_telemetry(app: FastAPI) -> None:
-    """Configure OpenTelemetry for the application.
+    """Set up OpenTelemetry tracing for the FastAPI application.
+
+    Configures the tracer provider, OTLP exporter, and FastAPI instrumentation.
 
     Args:
-        app: FastAPI application instance
+        app: The FastAPI application instance to instrument.
     """
     try:
         # Create and set tracer provider

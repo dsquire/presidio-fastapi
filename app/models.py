@@ -10,10 +10,10 @@ from app.config import settings
 
 
 class AnalyzeRequest(BaseModel):
-    """Request model for text analysis.
+    """Model for analyzing a single text for PII entities.
 
     Attributes:
-        text: The input text to analyze for PII entities.
+        text: The input text to analyze.
         language: The language of the input text (ISO 639-1 code).
     """
 
@@ -31,12 +31,10 @@ class AnalyzeRequest(BaseModel):
 
 
 class BatchAnalyzeRequest(BaseModel):
-    """Request model for batch text analysis.
-
-    Allows analyzing multiple texts in a single request.
+    """Model for analyzing multiple texts in a single request.
 
     Attributes:
-        texts: A list of texts to analyze for PII entities.
+        texts: A list of input texts to analyze.
         language: The language of the input texts (ISO 639-1 code).
     """
 
