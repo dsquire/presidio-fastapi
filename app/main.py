@@ -49,9 +49,6 @@ async def startup_event(app: FastAPI) -> None:
     """
     logger.info("Application startup")
     
-    logger.info("Setting up telemetry...")
-    setup_telemetry(app)
-    
     # Initialize analyzer
     try:
         logger.info("Initializing analyzer...")
@@ -109,6 +106,11 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     
+    # Setup Telemetry early, before other middleware or routes that might depend on it
+    # or conflict with its own middleware additions.
+    logger.info("Setting up telemetry in create_app...")
+    setup_telemetry(app)
+
     # Initialize metrics middleware first since others might generate metrics
     metrics_middleware = MetricsMiddleware(app)
     app.state.metrics = metrics_middleware
