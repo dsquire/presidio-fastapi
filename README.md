@@ -180,6 +180,90 @@ This project uses pytest for testing.
 pytest
 ```
 
+## Usage Examples
+
+### Analyze a Single Text
+
+Send a POST request to `/api/v1/analyze` with the following JSON payload:
+
+```json
+{
+  "text": "My name is John Doe and my email is john.doe@example.com.",
+  "language": "en"
+}
+```
+
+Response:
+
+```json
+{
+  "entities": [
+    {
+      "entity_type": "PERSON",
+      "start": 11,
+      "end": 19,
+      "score": 0.95,
+      "text": "John Doe"
+    },
+    {
+      "entity_type": "EMAIL",
+      "start": 38,
+      "end": 58,
+      "score": 0.98,
+      "text": "john.doe@example.com"
+    }
+  ],
+  "cached": false
+}
+```
+
+### Batch Analyze Texts
+
+Send a POST request to `/api/v1/batch-analyze` with the following JSON payload:
+
+```json
+{
+  "texts": [
+    "My name is John Doe.",
+    "Contact me at john.doe@example.com."
+  ],
+  "language": "en"
+}
+```
+
+Response:
+
+```json
+{
+  "results": [
+    {
+      "entities": [
+        {
+          "entity_type": "PERSON",
+          "start": 11,
+          "end": 19,
+          "score": 0.95,
+          "text": "John Doe"
+        }
+      ],
+      "cached": false
+    },
+    {
+      "entities": [
+        {
+          "entity_type": "EMAIL",
+          "start": 13,
+          "end": 33,
+          "score": 0.98,
+          "text": "john.doe@example.com"
+        }
+      ],
+      "cached": false
+    }
+  ]
+}
+```
+
 ## API Reference
 
 ### Text Analysis Endpoints
