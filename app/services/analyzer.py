@@ -1,6 +1,5 @@
 import logging
 from functools import lru_cache
-from typing import Dict, Any
 
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
