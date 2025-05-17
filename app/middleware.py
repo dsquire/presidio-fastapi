@@ -137,9 +137,16 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):
-    """Collect request metrics with enhanced security monitoring."""
+    """Middleware for collecting API usage metrics."""
 
-    def __init__(self, app: Any, metrics: 'MetricsMiddleware' = None) -> None:
+    requests_count: int
+    requests_by_path: dict[str, int]
+    response_times: list[float]
+    error_counts: dict[int, int]
+    suspicious_requests: dict[str, int]
+    _lock: asyncio.Lock
+
+    def __init__(self, app: Any, metrics: Optional['MetricsMiddleware'] = None) -> None:
         super().__init__(app)
         # If an existing instance is provided, use its state
         if metrics is not None:
@@ -151,11 +158,11 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             self._lock = metrics._lock
         else:
             # Initialize new state
-            self.requests_count: int = 0
-            self.requests_by_path: dict[str, int] = defaultdict(int)
-            self.response_times: list[float] = []
-            self.error_counts: dict[int, int] = defaultdict(int)
-            self.suspicious_requests: dict[str, int] = defaultdict(int)
+            self.requests_count = 0
+            self.requests_by_path = defaultdict(int)
+            self.response_times = []
+            self.error_counts = defaultdict(int)
+            self.suspicious_requests = defaultdict(int)
             self._lock = asyncio.Lock()
     
     def _is_suspicious(self, request: Request) -> bool:
