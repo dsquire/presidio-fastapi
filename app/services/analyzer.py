@@ -2,11 +2,14 @@ import logging
 from functools import lru_cache
 
 from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer.context_aware_enhancer import ContextAwareEnhancer
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+# Set Presidio's logger to INFO level to suppress debug messages
+logging.getLogger("presidio-analyzer").setLevel(logging.INFO)
 
 
 @lru_cache()
@@ -32,8 +35,25 @@ def get_analyzer() -> AnalyzerEngine:
         nlp_engine = NlpEngineProvider(nlp_configuration=nlp_config).create_engine()
         logger.info("NLP engine created successfully")
 
+        logger.info("Creating context-aware enhancer...")
+        # Create context aware enhancer with configured settings
+        context_aware_enhancer = ContextAwareEnhancer(
+            supported_languages=["en", "es"],
+            context_similarity_threshold=settings.CONTEXT_SIMILARITY_THRESHOLD,
+            max_distance=settings.CONTEXT_MAX_DISTANCE,
+        )
+        logger.debug(
+            "Context-aware enhancer created with threshold=%f, max_distance=%d",
+            settings.CONTEXT_SIMILARITY_THRESHOLD,
+            settings.CONTEXT_MAX_DISTANCE,
+        )
+        logger.info("Context-aware enhancer created successfully")
+
         logger.info("Creating Analyzer engine...")
-        analyzer = AnalyzerEngine(nlp_engine=nlp_engine)
+        analyzer = AnalyzerEngine(
+            nlp_engine=nlp_engine,
+            context_aware_enhancer=context_aware_enhancer,
+        )
         logger.info("Analyzer engine created successfully")
 
         return analyzer

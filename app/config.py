@@ -28,6 +28,8 @@ class Settings(BaseSettings):
         ALLOWED_ORIGINS: Comma-separated string of allowed CORS origins.
         MIN_CONFIDENCE_SCORE: Minimum confidence score for PII detection.
         ENTITY_MAPPING: Mapping of Presidio entities.
+        CONTEXT_SIMILARITY_THRESHOLD: Similarity threshold for context-aware enhancer.
+        CONTEXT_MAX_DISTANCE: Maximum word distance for context search.
     """
 
     # API Version
@@ -56,6 +58,8 @@ class Settings(BaseSettings):
     MAX_TEXT_LENGTH: int = 102400
     ALLOWED_ORIGINS: str = ""
     MIN_CONFIDENCE_SCORE: float = 0.5
+    CONTEXT_SIMILARITY_THRESHOLD: float = 0.65
+    CONTEXT_MAX_DISTANCE: int = 10
 
     # Entity Mapping Configuration
     ENTITY_MAPPING: dict[str, list[str]] = {

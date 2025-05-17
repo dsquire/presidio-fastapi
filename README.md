@@ -136,6 +136,84 @@ OTLP_SECURE=false  # Whether to use TLS for OTLP exporter
 LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, or CRITICAL
 ```
 
+## Configuration
+
+### Context-Aware PII Detection
+
+The service uses Presidio's context-aware enhancer to improve PII detection accuracy. This can be tuned using the following environment variables:
+
+#### `CONTEXT_SIMILARITY_THRESHOLD` (default: 0.65)
+Controls how similar words need to be to be considered relevant context. Range: 0.0-1.0
+
+- **Higher values** (e.g., 0.8-0.9):
+  - More precise matching
+  - Fewer false positives
+  - Might miss contextual clues
+  - Best for: When accuracy is critical and false positives are costly
+
+- **Lower values** (e.g., 0.4-0.6):
+  - More lenient matching
+  - Better at catching variations
+  - May increase false positives
+  - Best for: When recall is more important than precision
+
+- **Default value** (0.65):
+  - Balanced approach
+  - Good for most use cases
+  - Mix of precision and recall
+
+#### `CONTEXT_MAX_DISTANCE` (default: 10)
+Controls how many words before and after a potential PII entity the enhancer will look for context.
+
+- **Higher values** (e.g., 15-20):
+  - Looks further for context
+  - Better for complex sentences
+  - Slower performance
+  - Best for: Complex documents with varied sentence structures
+
+- **Lower values** (e.g., 5-8):
+  - Faster processing
+  - More precise context
+  - May miss distant context clues
+  - Best for: Short texts, simple sentences, or when performance is critical
+
+- **Default value** (10):
+  - Good balance of performance and accuracy
+  - Suitable for most document types
+
+#### Example Configuration
+```env
+# More strict matching with wider context search
+CONTEXT_SIMILARITY_THRESHOLD=0.75  # Strict matching
+CONTEXT_MAX_DISTANCE=15           # Look further for context
+
+# More lenient matching with tighter context
+CONTEXT_SIMILARITY_THRESHOLD=0.55  # Lenient matching
+CONTEXT_MAX_DISTANCE=8            # Quick, close context only
+```
+
+#### When to Adjust These Values
+
+1. **Increase `CONTEXT_SIMILARITY_THRESHOLD` when**:
+   - Getting too many false positives
+   - Working with formal documents
+   - Accuracy is more important than coverage
+
+2. **Decrease `CONTEXT_SIMILARITY_THRESHOLD` when**:
+   - Missing valid PII entities
+   - Working with informal text
+   - Working with multiple language variations
+
+3. **Increase `CONTEXT_MAX_DISTANCE` when**:
+   - Working with complex sentence structures
+   - Important context might be several words away
+   - Performance is not a primary concern
+
+4. **Decrease `CONTEXT_MAX_DISTANCE` when**:
+   - Working with simple, direct text
+   - Performance is critical
+   - Getting false positives from distant context
+
 ## Running the Application
 
 1. Ensure you have created a `.env` file as described in the "Environment Variables" section.
