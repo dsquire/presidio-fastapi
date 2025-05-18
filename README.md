@@ -128,6 +128,89 @@ Fine-tune context-aware PII detection with:
   * Higher (15-20): Looks further for context, better for complex text
   * Lower (5-8): Faster processing, best for simple text
 
+## Custom Recognizers
+
+You can configure custom recognizers using YAML configuration without writing any code. The configuration file is located at `config/recognizers.yaml`.
+
+### Example Configuration
+
+```yaml
+# Recognizer Registry configuration
+recognizer_registry:
+  supported_languages:
+    - en
+    - es
+  recognizers:
+    # Custom regex-based recognizer
+    - name: "employee_id"
+      supported_entity: "EMPLOYEE_ID"
+      type: regex
+      patterns:
+        - name: "standard_employee_id"
+          regex: "EMP\\d{6}"  # Matches EMP followed by 6 digits
+          score: 0.85
+      context:
+        - "employee"
+        - "id"
+        - "number"
+      supported_language: "en"
+
+    # Deny list based recognizer
+    - name: "project_code"
+      supported_entity: "PROJECT_CODE"
+      type: regex
+      patterns:
+        - name: "internal_project"
+          regex: "PRJ-[A-Z]{2}-\\d{4}"  # Matches PRJ-XX-1234 format
+          score: 0.9
+      context:
+        - "project"
+        - "code"
+        - "reference"
+      supported_language: "en"
+```
+
+### Configuration Options
+
+Each recognizer can have the following options:
+
+- `name`: Unique identifier for the recognizer
+- `supported_entity`: The type of entity this recognizer detects
+- `type`: Type of recognizer (`regex`, `pattern`, `deny_list`, or `predefined`)
+- `patterns`: List of regex patterns with names and confidence scores
+- `context`: List of context words that improve detection accuracy
+- `supported_language`: Language code this recognizer supports
+
+### Context Settings
+
+Global context awareness settings can be configured:
+
+```yaml
+defaults:
+  allow_overlap: false
+  context:
+    similarity_threshold: 0.65  # How similar context words need to be
+    max_distance: 10           # Maximum word distance for context
+```
+
+### Adding New Recognizers
+
+1. Edit `config/recognizers.yaml`
+2. Add your recognizer configuration under the `recognizers` section
+3. Restart the service to apply changes
+
+### Testing Recognizers
+
+You can test your custom recognizers using the API:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/analyze" \
+     -H "Content-Type: application/json" \
+     -d '{"text": "Employee EMP123456 is working on project PRJ-AB-1234"}'
+```
+
+For more examples and configuration options, see the [Presidio documentation](https://microsoft.github.io/presidio/).
+
 ## Project Structure
 
 ```

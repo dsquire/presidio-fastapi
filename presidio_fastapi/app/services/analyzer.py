@@ -2,11 +2,9 @@
 
 import logging
 from functools import lru_cache
+from pathlib import Path
 
-from presidio_analyzer import AnalyzerEngine
-from presidio_analyzer.nlp_engine import NlpEngineProvider
-
-from presidio_fastapi.app.config import settings
+from presidio_analyzer import AnalyzerEngine, AnalyzerEngineProvider
 
 logger = logging.getLogger(__name__)
 # Set Presidio's logger to INFO level to suppress debug messages
@@ -15,51 +13,27 @@ logging.getLogger("presidio-analyzer").setLevel(logging.INFO)
 
 @lru_cache()
 def get_analyzer() -> AnalyzerEngine:
-    """Creates and caches the Presidio analyzer engine.
-
-    The engine is configured with entity mapping from the application settings.
-    Uses lru_cache to ensure the engine is created only once.
+    """Creates and caches the Presidio analyzer engine using YAML configuration.
 
     Returns:
         AnalyzerEngine: An instance of presidio_analyzer.AnalyzerEngine
-                        configured with NLP engine and entity mappings.
+                        configured with settings from the YAML file.
 
     Raises:
-        Exception: If the analyzer or NLP engine creation fails.
+        Exception: If the analyzer creation fails.
     """
     try:
-        logger.info("Creating NLP config with entity mapping...")
-        nlp_config = settings.nlp_configuration
-        logger.debug("NLP config: %s", nlp_config)
-
-        logger.info("Creating NLP engine...")
-        nlp_engine = NlpEngineProvider(nlp_configuration=nlp_config).create_engine()
-        logger.info("NLP engine created successfully")
-
-        logger.info("Creating Analyzer engine...")
-        analyzer = AnalyzerEngine(
-            nlp_engine=nlp_engine,
-            supported_languages=["en", "es"],
+        config_path = (
+            Path(__file__).parent.parent.parent.parent / "config" / "recognizers.yaml"
         )
+        logger.info("Loading analyzer configuration from %s", config_path)
 
-        # Configure context enhancer settings through registry
-        registry = analyzer.registry
-        # Store the context configuration in the registry
-        registry.context_similarity_threshold = settings.CONTEXT_SIMILARITY_THRESHOLD
-        registry.max_distance = settings.CONTEXT_MAX_DISTANCE
-
-        logger.debug(
-            "Analyzer created with threshold=%f, max_distance=%d",
-            settings.CONTEXT_SIMILARITY_THRESHOLD,
-            settings.CONTEXT_MAX_DISTANCE,
-        )
-        logger.info("Analyzer engine created successfully")
+        provider = AnalyzerEngineProvider(analyzer_engine_conf_file=str(config_path))
+        analyzer = provider.create_engine()
+        logger.info("Analyzer engine created successfully from configuration file")
 
         return analyzer
     except Exception as e:
         logger.error("Error creating analyzer: %s", str(e))
         logger.exception(e)
         raise
-
-
-__all__ = ["get_analyzer"]

@@ -8,13 +8,9 @@ from fastapi import APIRouter, HTTPException, Request, status
 from presidio_analyzer import AnalyzerEngine
 
 from presidio_fastapi.app.middleware import MetricsMiddleware
-from presidio_fastapi.app.models import (
-    AnalyzeRequest,
-    AnalyzeResponse,
-    BatchAnalyzeRequest,
-    BatchAnalyzeResponse,
-    Entity,
-)
+from presidio_fastapi.app.models import (AnalyzeRequest, AnalyzeResponse,
+                                         BatchAnalyzeRequest,
+                                         BatchAnalyzeResponse, Entity)
 from presidio_fastapi.app.telemetry import trace_method
 
 logger = logging.getLogger(__name__)
@@ -138,8 +134,11 @@ async def analyze_batch(
     """
     try:
         analyzer = _get_analyzer_from_request(req)
+        # Create AnalyzeResponse for each text
         results = [
-            _analyze_single_text(analyzer, text, request.language)
+            AnalyzeResponse(
+                entities=_analyze_single_text(analyzer, text, request.language)
+            )
             for text in request.texts
         ]
         logger.info("Processed %d texts in batch", len(results))
@@ -183,10 +182,10 @@ def _analyze_single_text(
             for result in analyzed
         ]
 
-        return AnalyzeResponse(entities=entities)
+        return entities
     except Exception as e:
         logger.exception("Error analyzing text: %s", str(e))
-        return AnalyzeResponse(entities=[])
+        return []
 
 
 @router.get(

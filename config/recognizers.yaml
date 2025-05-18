@@ -1,0 +1,81 @@
+---
+# Analyzer configuration
+supported_languages:
+  - en
+  - es
+default_score_threshold: 0.5
+
+# Recognizer Registry configuration
+recognizer_registry:
+  supported_languages:
+    - en
+    - es
+  global_regex_flags: 26  # Case insensitive and unicode
+  recognizers:
+    # Built-in recognizers
+    - name: CreditCardRecognizer
+      supported_languages:
+        - language: en
+          context: [credit, card, visa, mastercard, cc, amex, discover, jcb, diners, maestro, instapayment]
+        - language: es
+          context: [tarjeta, credito, visa, mastercard, cc, amex, discover, jcb, diners, maestro, instapayment]
+      type: predefined
+
+    - name: EmailRecognizer
+      supported_languages:
+        - language: en
+          context: [email, mail, address]
+        - language: es
+          context: [correo, electrónico, email]
+      type: predefined
+
+    - name: PhoneRecognizer
+      type: predefined
+      supported_languages:
+        - language: en
+          context: [phone, number, telephone, fax]
+        - language: es
+          context: [teléfono, número, fax]
+
+    # Custom recognizers
+    - name: "employee_id"
+      supported_entity: "EMPLOYEE_ID"
+      type: regex
+      patterns:
+        - name: "standard_employee_id"
+          regex: "EMP\\d{6}"  # Matches EMP followed by 6 digits
+          score: 0.85
+      context:
+        - "employee"
+        - "id"
+        - "number"
+      supported_language: "en"
+
+    - name: "project_code"
+      supported_entity: "PROJECT_CODE"
+      type: regex
+      patterns:
+        - name: "internal_project"
+          regex: "PRJ-[A-Z]{2}-\\d{4}"  # Matches PRJ-XX-1234 format
+          score: 0.9
+      context:
+        - "project"
+        - "code"
+        - "reference"
+      supported_language: "en"
+
+# NLP Engine configuration
+nlp_configuration:
+  nlp_engine_name: spacy
+  models:
+    - lang_code: en
+      model_name: en_core_web_lg
+    - lang_code: es
+      model_name: es_core_news_lg
+
+# Default settings for all recognizers
+defaults:
+  allow_overlap: false
+  context:
+    similarity_threshold: 0.65
+    max_distance: 10

@@ -8,11 +8,9 @@ from fastapi import FastAPI
 
 from presidio_fastapi.app.api.routes import router
 from presidio_fastapi.app.config import settings
-from presidio_fastapi.app.middleware import (
-    MetricsMiddleware,
-    RateLimiterMiddleware,
-    SecurityHeadersMiddleware,
-)
+from presidio_fastapi.app.middleware import (MetricsMiddleware,
+                                             RateLimiterMiddleware,
+                                             SecurityHeadersMiddleware)
 from presidio_fastapi.app.services.analyzer import get_analyzer
 from presidio_fastapi.app.telemetry import setup_telemetry
 
