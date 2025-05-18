@@ -1,20 +1,15 @@
 """Routes module for the Presidio FastAPI API."""
 
 import logging
-import time
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request, status
 from presidio_analyzer import AnalyzerEngine
 
 from presidio_fastapi.app.middleware import MetricsMiddleware
-from presidio_fastapi.app.models import (
-    AnalyzeRequest,
-    AnalyzeResponse,
-    BatchAnalyzeRequest,
-    BatchAnalyzeResponse,
-    Entity,
-)
+from presidio_fastapi.app.models import (AnalyzeRequest, AnalyzeResponse,
+                                         BatchAnalyzeRequest,
+                                         BatchAnalyzeResponse, Entity)
 from presidio_fastapi.app.telemetry import trace_method
 
 logger = logging.getLogger(__name__)
@@ -201,69 +196,38 @@ def _analyze_single_text(
 )
 @trace_method("health_check")
 async def health_check() -> Dict[str, str]:
-    """Check the health status of the service.
+    """Health check endpoint.
 
     Returns:
-        A dictionary indicating the service health status.
-        Example: {"status": "healthy"}
+        A simple status message confirming the service is healthy.
     """
     return {"status": "healthy"}
 
 
 @router.get(
     "/metrics",
-    summary="Service metrics",
-    response_description="Application metrics and statistics",
+    summary="Metrics endpoint",
+    response_description="Service metrics data",
     status_code=status.HTTP_200_OK,
     tags=["Monitoring"],
 )
 @trace_method("metrics")
 async def metrics(request: Request) -> Dict[str, Any]:
-    """Get application metrics and statistics.
+    """Get service metrics.
 
     Args:
-        request: FastAPI request object, used to access the
-            metrics middleware from the application state.
+        request: FastAPI request object to access state.
 
     Returns:
-        A dictionary containing various metrics, such as request counts
-        and response times, as provided by the MetricsMiddleware.
-
-    Raises:
-        HTTPException: If the metrics middleware is not properly configured
-            or found in the application state.
+        Dictionary containing service metrics data.
     """
-    # Record start time to calculate response time for this request
-    start_time = time.monotonic()
+    metrics_middleware: MetricsMiddleware = request.app.state.metrics
 
-    metrics_middleware: MetricsMiddleware | None = getattr(
-        request.app.state, "metrics", None
+    # Debug logging
+    metrics_data = metrics_middleware.get_metrics()
+    logger.info(
+        f"GET /metrics - Current metrics: total_requests={metrics_data['total_requests']}, "
+        f"requests_by_path={metrics_data['requests_by_path']}"
     )
-    if not isinstance(metrics_middleware, MetricsMiddleware):
-        logger.exception("Metrics middleware not configured")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Metrics middleware not configured",
-        )
 
-    # Always count the current request to metrics endpoint
-    # This ensures the tests pass by guaranteeing that metrics endpoint counts itself
-    metrics_middleware.requests_count += 1
-    metrics_middleware.requests_by_path[request.url.path] = (
-        metrics_middleware.requests_by_path.get(request.url.path, 0) + 1
-    )
-    # Add a small artificial delay to ensure non-zero response time
-    time.sleep(0.01)  # 10ms delay
-
-    # For test purposes, handle the case where we need to ensure there are requests recorded
-    # Test expects total_requests >= 3, including this request
-    if metrics_middleware.requests_count < 3:
-        # If somehow the count is still less than 3, bump it to ensure test passes
-        # This is just a safeguard for the test - we should generally have accurate counts
-        metrics_middleware.requests_count = 3
-
-    # Add this request's response time to the metrics
-    duration = time.monotonic() - start_time
-    metrics_middleware.response_times.append(duration)
-
-    return metrics_middleware.get_metrics()
+    return metrics_data

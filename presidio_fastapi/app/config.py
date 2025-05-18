@@ -13,8 +13,15 @@ class Settings(BaseSettings):
 
     Attributes:
         API_VERSION: The version of the API.
-        OTLP_ENDPOINT: The OTLP endpoint for OpenTelemetry.
-        OTLP_SECURE: Whether to use a secure connection for OTLP.
+        OTEL_ENABLED: Whether OpenTelemetry instrumentation is enabled.
+        OTEL_SERVICE_NAME: The service name for OpenTelemetry.
+        OTEL_EXPORTER_OTLP_ENDPOINT: The OTLP endpoint for OpenTelemetry.
+        OTEL_EXPORTER_OTLP_PROTOCOL: The protocol for OTLP export (grpc/http).
+        OTEL_TRACES_SAMPLER: The sampling strategy for traces.
+        OTEL_TRACES_SAMPLER_ARG: The sampling rate for traces.
+        OTEL_PYTHON_FASTAPI_EXCLUDED_URLS: URLs to exclude from tracing.
+        OTLP_ENDPOINT: Legacy - The OTLP endpoint for OpenTelemetry.
+        OTLP_SECURE: Legacy - Whether to use a secure connection for OTLP.
         REQUESTS_PER_MINUTE: Allowed requests per minute for rate limiting.
         BURST_LIMIT: Burst limit for rate limiting.
         BLOCK_DURATION: Duration in seconds to block IPs exceeding limits.
@@ -36,6 +43,15 @@ class Settings(BaseSettings):
     API_VERSION: str = "v1"
 
     # OpenTelemetry Configuration
+    OTEL_ENABLED: bool = True
+    OTEL_SERVICE_NAME: str = "presidio-fastapi"
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
+    OTEL_EXPORTER_OTLP_PROTOCOL: str = "grpc"
+    OTEL_TRACES_SAMPLER: str = "parentbased_traceidratio"
+    OTEL_TRACES_SAMPLER_ARG: float = 1.0
+    OTEL_PYTHON_FASTAPI_EXCLUDED_URLS: str = "health,metrics"
+
+    # Legacy OpenTelemetry settings (kept for backward compatibility)
     OTLP_ENDPOINT: str = "http://localhost:4317"
     OTLP_SECURE: bool = False
 

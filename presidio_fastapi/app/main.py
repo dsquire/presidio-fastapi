@@ -8,11 +8,9 @@ from fastapi import FastAPI
 
 from presidio_fastapi.app.api.routes import router
 from presidio_fastapi.app.config import settings
-from presidio_fastapi.app.middleware import (
-    MetricsMiddleware,
-    RateLimiterMiddleware,
-    SecurityHeadersMiddleware,
-)
+from presidio_fastapi.app.middleware import (MetricsMiddleware,
+                                             RateLimiterMiddleware,
+                                             SecurityHeadersMiddleware)
 from presidio_fastapi.app.services.analyzer import get_analyzer
 from presidio_fastapi.app.telemetry import setup_telemetry
 
@@ -91,11 +89,12 @@ def get_openapi_schema() -> dict[str, Any]:
     return openapi_schema_cache
 
 
-def create_app() -> FastAPI:
+def create_app(metrics_instance: MetricsMiddleware | None = None) -> FastAPI:
     """Creates and configures the FastAPI application.
 
-    Initializes the FastAPI app with versioned title, documentation URLs,
-    and lifespan events. Includes API routes.
+    Args:
+        metrics_instance: Optional existing metrics middleware instance to use.
+            If None, a new instance will be created.
 
     Returns:
         FastAPI: The configured FastAPI application instance.
@@ -107,18 +106,27 @@ def create_app() -> FastAPI:
         redoc_url=f"/api/{settings.API_VERSION}/redoc",
         openapi_url=f"/api/{settings.API_VERSION}/openapi.json",
         lifespan=lifespan,
-    )
-
-    # Setup Telemetry early, before other middleware or routes that might depend on it
+    )  # Setup Telemetry early, before other middleware or routes that might depend on it
     # or conflict with its own middleware additions.
-    logger.info("Setting up telemetry in create_app...")
-    setup_telemetry(app)
+    try:
+        logger.info("Setting up telemetry in create_app...")
+        setup_telemetry(app)
+    except Exception as e:
+        logger.error(
+            f"Failed to set up telemetry: {str(e)}. Continuing without telemetry."
+        )
+        # Don't let telemetry setup failure prevent app startup
 
     # Initialize metrics middleware first since others might generate metrics
-    metrics_middleware = MetricsMiddleware(app)
-    app.state.metrics = metrics_middleware
-    # Important: Add the INSTANCE we created to app.middleware, not just the class
-    app.add_middleware(MetricsMiddleware, metrics=metrics_middleware)
+    if metrics_instance is None:
+        # Create a new metrics middleware instance
+        metrics_instance = MetricsMiddleware(None)  # Don't pass app yet
+
+    # Add the middleware to the app
+    app.add_middleware(MetricsMiddleware, metrics=metrics_instance)
+
+    # Make metrics accessible through app.state
+    app.state.metrics = metrics_instance
 
     # Initialize security middleware
     app.add_middleware(SecurityHeadersMiddleware)

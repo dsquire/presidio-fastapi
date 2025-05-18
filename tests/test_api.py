@@ -11,7 +11,7 @@ def test_root_endpoint(client: TestClient) -> None:
     Args:
         client: FastAPI test client for making requests.
     """
-    response = client.get("/")
+    response = client.get("/api/v1/")
     assert response.status_code == HTTPStatus.OK
     data = response.json()
     assert data["status"] == "ok"
@@ -23,7 +23,7 @@ def test_health_check(client: TestClient) -> None:
     Args:
         client: FastAPI test client for making requests.
     """
-    response = client.get("/health")
+    response = client.get("/api/v1/health")
     assert response.status_code == HTTPStatus.OK
     assert response.json()["status"] == "healthy"
 
@@ -36,7 +36,7 @@ def test_analyze_endpoint_success(client: TestClient) -> None:
     """
     test_text = "My name is John Doe and my email is john@example.com"
     response = client.post(
-        "/analyze",
+        "/api/v1/analyze",
         json={
             "text": test_text,
             "language": "en",
@@ -57,20 +57,19 @@ def test_analyze_endpoint_validation(client: TestClient) -> None:
 
     Args:
         client: FastAPI test client
-    """
-    # Test empty text
+    """  # Test empty text
     response = client.post(
-        "/analyze",
+        "/api/v1/analyze",
         json={
             "text": "",
             "language": "en",
         },
     )
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-
-    # Test invalid language code
+    assert (
+        response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    )  # Test invalid language code
     response = client.post(
-        "/analyze",
+        "/api/v1/analyze",
         json={
             "text": "Some text",
             "language": "invalid",

@@ -27,7 +27,8 @@ python -m spacy download en_core_web_lg
 # Create basic .env file
 echo "NLP_ENGINE_NAME=spacy
 SPACY_MODEL_EN=en_core_web_lg
-API_VERSION=v1" > .env
+API_VERSION=v1
+OTEL_ENABLED=false" > .env
 
 # Run the service
 presidio-fastapi
@@ -221,8 +222,8 @@ presidio_fastapi/
 │   ├── services/         # Business logic and services
 │   ├── config.py         # Application configuration
 │   ├── main.py           # FastAPI application factory
-│   ├── middleware.py     # Custom middleware components
-│   └── telemetry.py      # OpenTelemetry instrumentation
+│   ├── middleware.py     # Security, rate limiting, and metrics middleware  
+│   └── telemetry.py      # Fault-tolerant OpenTelemetry instrumentation
 ├── __init__.py           # Package initialization
 ├── run.py                # Application entry point
 └── stubs.py              # Type stubs for improved IDE support
@@ -275,8 +276,10 @@ curl -X POST "http://localhost:8000/api/v1/analyze/batch" \
 - CORS with configurable origins
 - Input validation and sanitization
 - Rate limiting (default: 60 requests/minute per IP)
-- Security headers (CSP, HSTS, XSS Protection)
-- Request/response metrics and monitoring
+- IP blocking for abusive clients (burst protection)
+- Security headers (CSP, HSTS, XSS Protection, Content-Type Options)
+- Comprehensive request/response metrics and monitoring
+- Suspicious request detection and tracking
 
 ## Monitoring
 
@@ -290,14 +293,75 @@ curl http://localhost:8000/api/v1/health
 curl http://localhost:8000/api/v1/metrics
 ```
 
+The metrics endpoint provides the following information:
+- `total_requests`: Total number of requests processed
+- `requests_by_path`: Count of requests per API endpoint path
+- `average_response_time`: Average response time in seconds
+- `requests_in_last_minute`: Number of requests in the last minute
+- `error_rate`: Proportion of requests that resulted in errors
+- `error_counts`: Count of errors by HTTP status code
+- `suspicious_requests`: Count of potentially suspicious requests
+
+Example metrics response:
+```json
+{
+  "total_requests": 42,
+  "requests_by_path": {
+    "/api/v1/analyze": 24,
+    "/api/v1/health": 10,
+    "/api/v1/metrics": 8
+  },
+  "average_response_time": 0.125,
+  "requests_in_last_minute": 5,
+  "error_rate": 0.02,
+  "error_counts": {
+    "404": 1
+  },
+  "suspicious_requests": {}
+}
+```
+
 ### Distributed Tracing
 
-The service supports OpenTelemetry tracing. Configure with:
+The service supports OpenTelemetry tracing which can be enabled/disabled and configured via environment variables:
 
 ```env
-OTLP_ENDPOINT=http://localhost:4317
-OTLP_SECURE=false
+# OpenTelemetry Toggle
+OTEL_ENABLED=true  # Set to false to completely disable OpenTelemetry
+
+# Service Information
+OTEL_SERVICE_NAME=presidio-fastapi  # Name of the service
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317  # OTLP endpoint URL
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc  # Protocol (grpc/http)
+
+# Sampling Configuration
+OTEL_TRACES_SAMPLER=parentbased_traceidratio  # Sampling strategy
+OTEL_TRACES_SAMPLER_ARG=1.0  # Sampling rate (0.0 to 1.0)
+
+# Optional: URLs to exclude from tracing
+OTEL_PYTHON_FASTAPI_EXCLUDED_URLS=health,metrics
+
+# Legacy Configuration (for backward compatibility)
+OTLP_SECURE=false  # Whether to use secure connection for OTLP
+
+# Optional: Authentication for secure endpoints
+OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <token>"
 ```
+
+The telemetry implementation includes the following features:
+- Automatically checks if the OTLP collector is available before attempting to connect
+- Falls back to console exporter when the collector is unavailable
+- Thread-safe operation with proper error handling
+- Graceful degradation when telemetry services are unavailable
+- Custom attributes for detailed PII detection tracing
+
+When enabled, the service will automatically:
+- Track all incoming HTTP requests
+- Add trace context to PII detection operations
+- Track function execution times and errors
+- Add relevant PII detection attributes to spans
+
+To disable OpenTelemetry in development or testing environments, set `OTEL_ENABLED=false`.
 
 ## License
 

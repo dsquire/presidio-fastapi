@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from presidio_analyzer import Pattern, PatternRecognizer
 
 logger = logging.getLogger(__name__)
