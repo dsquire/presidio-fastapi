@@ -225,8 +225,7 @@ presidio_fastapi/
 │   ├── middleware.py     # Security, rate limiting, and metrics middleware  
 │   └── telemetry.py      # Fault-tolerant OpenTelemetry instrumentation
 ├── __init__.py           # Package initialization
-├── run.py                # Application entry point
-└── stubs.py              # Type stubs for improved IDE support
+└── run.py                # Application entry point
 ```
 
 ## Development
