@@ -7,9 +7,13 @@ from fastapi import APIRouter, HTTPException, Request, status
 from presidio_analyzer import AnalyzerEngine
 
 from presidio_fastapi.app.middleware import MetricsMiddleware
-from presidio_fastapi.app.models import (AnalyzeRequest, AnalyzeResponse,
-                                         BatchAnalyzeRequest,
-                                         BatchAnalyzeResponse, Entity)
+from presidio_fastapi.app.models import (
+    AnalyzeRequest,
+    AnalyzeResponse,
+    BatchAnalyzeRequest,
+    BatchAnalyzeResponse,
+    Entity,
+)
 from presidio_fastapi.app.telemetry import trace_method
 
 logger = logging.getLogger(__name__)
