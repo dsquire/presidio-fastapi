@@ -1,7 +1,7 @@
 """Prometheus metrics integration for FastAPI."""
 
 import logging
-from typing import Callable
+from typing import Any, Callable, TypeVar
 
 from fastapi import FastAPI
 from prometheus_client import (
@@ -13,6 +13,7 @@ from prometheus_client import (
     generate_latest,
 )
 from starlette.responses import Response
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from presidio_fastapi.app.config import settings
 
@@ -48,11 +49,11 @@ PII_ENTITIES_DETECTED = Counter(
 class PrometheusMiddleware:
     """Middleware for collecting Prometheus metrics on HTTP requests."""
     
-    def __init__(self, app: FastAPI):
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
         logger.info("Prometheus middleware initialized")
         
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         
@@ -83,7 +84,7 @@ class PrometheusMiddleware:
         ACTIVE_REQUESTS.labels(method=method, endpoint=path).inc()
         
         # Define response interceptor
-        async def send_wrapper(message):
+        async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
                 status_code = message["status"]
                 REQUEST_COUNT.labels(method=method, endpoint=path, status_code=status_code).inc()
@@ -120,13 +121,15 @@ def track_pii_entity(entity_type: str, language: str) -> None:
     """
     PII_ENTITIES_DETECTED.labels(entity_type=entity_type, language=language).inc()
 
-def metrics_endpoint() -> Callable:
+MetricsHandlerType = TypeVar("MetricsHandlerType", bound=Callable[..., Any])
+
+def metrics_endpoint() -> Callable[..., Any]:
     """Create metrics endpoint handler.
     
     Returns:
         Callable: FastAPI endpoint handler function
     """
-    async def metrics(request):
+    async def metrics(request: Any) -> Response:
         return Response(
             content=generate_latest(REGISTRY),
             media_type=CONTENT_TYPE_LATEST
@@ -152,7 +155,8 @@ def setup_prometheus(app: FastAPI) -> None:
     api_version = settings.API_VERSION
     monitored_path_suffixes = [
         suffix.strip() for suffix in settings.PROMETHEUS_MONITORED_PATHS.split(",")
-        if suffix.strip()    ]
+        if suffix.strip()
+    ]
     monitored_paths = [f"/api/{api_version}/{suffix}" for suffix in monitored_path_suffixes]
     paths_str = ", ".join(monitored_paths)
     logger.info(f"Prometheus metrics setup complete. Monitoring paths: {paths_str}")

@@ -3,7 +3,7 @@
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from presidio_analyzer import AnalyzerEngine, AnalyzerEngineProvider, RecognizerResult
 
@@ -46,7 +46,7 @@ def analyze_with_metrics(
     analyzer: AnalyzerEngine,
     text: str,
     language: str,
-    **kwargs
+    **kwargs: Any
 ) -> List[RecognizerResult]:
     """Analyzes text for PII and records metrics.
     
