@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from presidio_fastapi.app.main import create_app
-from presidio_fastapi.app.middleware import MetricsMiddleware
 
 # Test constants
 REQUESTS_PER_MINUTE = 60
@@ -47,32 +46,19 @@ def disable_telemetry(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(scope="session")
-def metrics_middleware() -> MetricsMiddleware:
-    """Create a metrics middleware instance shared across all tests.
-
-    This uses session scope to ensure the same instance is used across all tests,
-    preserving request counts and other metrics.
-
-    Returns:
-        MetricsMiddleware: The shared metrics middleware instance.
-    """
-    # Initialize with None as app since it will be set later in create_app
-    return MetricsMiddleware(None)
+def burst_limit() -> int:
+    """Return the burst limit constant for rate limiting tests."""
+    return BURST_LIMIT
 
 
 @pytest.fixture
-async def app_with_lifespan(
-    metrics_middleware: MetricsMiddleware,
-) -> AsyncGenerator[FastAPI, None]:
+async def app_with_lifespan() -> AsyncGenerator[FastAPI, None]:
     """Provide a FastAPI app instance with lifespan events executed.
-
-    Args:
-        metrics_middleware: The shared metrics middleware instance.
 
     Yields:
         FastAPI: The application instance.
     """
-    app = create_app(metrics_instance=metrics_middleware)
+    app = create_app()
 
     async with app.router.lifespan_context(app):
         # Wait for any background tasks

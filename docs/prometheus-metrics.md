@@ -14,11 +14,8 @@ The following metrics are available:
 
 ## Accessing Metrics
 
-The service exposes two metrics endpoints:
+The metrics are available at the standard Prometheus metrics endpoint:
 
-### 1. Standard Prometheus Endpoint
-
-The main endpoint that returns metrics in Prometheus' text-based exposition format:
 ```
 http://your-server:port/api/v1/metrics
 ```
@@ -29,15 +26,6 @@ http://localhost:8000/api/v1/metrics
 ```
 
 This is the endpoint you should configure in your Prometheus scrape configuration.
-
-### 2. Legacy JSON Endpoint
-
-A secondary endpoint that returns metrics in JSON format (maintained for backward compatibility):
-```
-http://localhost:8000/api/v1/metrics-json
-```
-
-Note: The JSON endpoint is considered legacy and will be deprecated in future versions. Use the standard Prometheus endpoint for production monitoring.
 
 ## Configuring Prometheus
 
@@ -85,9 +73,7 @@ You can create a Grafana dashboard using these metrics to monitor:
 
 1. The metrics endpoint returns data in the Prometheus text-based format, which is required for Prometheus to correctly scrape the metrics.
 
-2. The legacy JSON metrics endpoint (`/api/v1/metrics-json`) is maintained for backward compatibility but is deprecated.
-
-3. To maintain accurate metrics, always use the `analyze_with_metrics` function from `presidio_fastapi.app.services.analyzer` instead of directly calling the Presidio analyzer's `analyze` method.
+2. To maintain accurate metrics, always use the `analyze_with_metrics` function from `presidio_fastapi.app.services.analyzer` instead of directly calling the Presidio analyzer's `analyze` method.
 
 4. By default, metrics are only collected for specific endpoints (`/analyze` and `/analyze/batch`). This can be configured by setting the `PROMETHEUS_MONITORED_PATHS` environment variable to a comma-separated list of path suffixes to monitor.
 

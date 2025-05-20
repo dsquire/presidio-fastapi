@@ -1,12 +1,11 @@
 """Routes module for the Presidio FastAPI API."""
 
 import logging
-from typing import Any, Dict
+from typing import Dict
 
 from fastapi import APIRouter, HTTPException, Request, status
 from presidio_analyzer import AnalyzerEngine
 
-from presidio_fastapi.app.middleware import MetricsMiddleware
 from presidio_fastapi.app.models import (
     AnalyzeRequest,
     AnalyzeResponse,
@@ -212,35 +211,3 @@ async def health_check() -> Dict[str, str]:
         A simple status message confirming the service is healthy.
     """
     return {"status": "healthy"}
-
-
-@router.get(
-    "/metrics",
-    summary="Metrics endpoint (Legacy JSON format)",
-    response_description="Service metrics data in JSON format",
-    status_code=status.HTTP_200_OK,
-    tags=["Monitoring"],
-    deprecated=True,
-)
-@trace_method("metrics_json")
-async def metrics_json(request: Request) -> Dict[str, Any]:
-    """Get service metrics in JSON format (Legacy endpoint).
-    
-    This endpoint is deprecated. Use /metrics endpoint for Prometheus format metrics.
-
-    Args:
-        request: FastAPI request object to access state.
-
-    Returns:
-        Dictionary containing service metrics data.
-    """
-    metrics_middleware: MetricsMiddleware = request.app.state.metrics
-
-    # Debug logging
-    metrics_data = metrics_middleware.get_metrics()
-    logger.info(
-        f"GET /metrics - Current metrics: total_requests={metrics_data['total_requests']}, "
-        f"requests_by_path={metrics_data['requests_by_path']}"
-    )
-
-    return metrics_data

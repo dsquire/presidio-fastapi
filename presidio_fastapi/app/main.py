@@ -5,12 +5,10 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 
 from presidio_fastapi.app.api.routes import router
 from presidio_fastapi.app.config import settings
 from presidio_fastapi.app.middleware import (
-    MetricsMiddleware,
     RateLimiterMiddleware,
     SecurityHeadersMiddleware,
 )
@@ -87,15 +85,9 @@ def create_app() -> FastAPI:
 
     # Setup OpenTelemetry early, before other middleware
     logger.info("Setting up telemetry...")
-    setup_telemetry(app)
-
-    # Setup Prometheus metrics
+    setup_telemetry(app)    # Setup Prometheus metrics
     logger.info("Setting up Prometheus metrics...")
     setup_prometheus(app)
-
-    # Initialize metrics middleware for JSON metrics endpoint (legacy)
-    metrics_middleware = MetricsMiddleware(app)
-    app.state.metrics = metrics_middleware
 
     # Add security middleware
     app.add_middleware(SecurityHeadersMiddleware)
@@ -106,11 +98,6 @@ def create_app() -> FastAPI:
         router,
         prefix=f"/api/{settings.API_VERSION}",
     )
-
-    # Legacy JSON metrics endpoint
-    @app.get(f"/api/{settings.API_VERSION}/metrics-json", tags=["Monitoring"])
-    async def get_metrics():
-        return JSONResponse(content=app.state.metrics.get_metrics())
 
     return app
 
