@@ -296,16 +296,28 @@ curl -X POST "http://localhost:8000/api/v1/analyze/batch" \
 # Health check
 curl http://localhost:8000/api/v1/health
 
-# Prometheus metrics (recommended)
+# Get metrics in Prometheus format (standard endpoint for Prometheus scraping)
 curl http://localhost:8000/api/v1/metrics
 
-# Legacy JSON metrics (deprecated)
+# Get metrics in JSON format (legacy, deprecated)
 curl http://localhost:8000/api/v1/metrics-json
 ```
 
-#### Prometheus Metrics
+#### Metrics Format
 
-The service provides metrics in Prometheus format, which is the recommended approach for monitoring. The following metrics are available:
+The service exposes metrics in two formats:
+
+1. **Prometheus Text Format** (default endpoint: `/api/v1/metrics`):
+   - Standard endpoint for Prometheus scraping
+   - Returns metrics in Prometheus' text-based exposition format
+   - Use this endpoint when configuring Prometheus scraping
+
+2. **JSON Format** (legacy endpoint: `/api/v1/metrics-json`):
+   - Maintained for backward compatibility
+   - Provides a more human-readable format
+   - Will be deprecated in future versions
+
+The following metrics are available through both endpoints:
 
 - `http_requests_total`: Total number of HTTP requests (labeled by method, endpoint, status_code)
 - `http_request_duration_seconds`: Duration of HTTP requests in seconds (labeled by method, endpoint)

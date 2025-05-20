@@ -14,8 +14,11 @@ The following metrics are available:
 
 ## Accessing Metrics
 
-Metrics are available in Prometheus format at the following endpoint:
+The service exposes two metrics endpoints:
 
+### 1. Standard Prometheus Endpoint
+
+The main endpoint that returns metrics in Prometheus' text-based exposition format:
 ```
 http://your-server:port/api/v1/metrics
 ```
@@ -25,10 +28,16 @@ Example with default settings:
 http://localhost:8000/api/v1/metrics
 ```
 
-The legacy JSON metrics are available at:
+This is the endpoint you should configure in your Prometheus scrape configuration.
+
+### 2. Legacy JSON Endpoint
+
+A secondary endpoint that returns metrics in JSON format (maintained for backward compatibility):
 ```
 http://localhost:8000/api/v1/metrics-json
 ```
+
+Note: The JSON endpoint is considered legacy and will be deprecated in future versions. Use the standard Prometheus endpoint for production monitoring.
 
 ## Configuring Prometheus
 
