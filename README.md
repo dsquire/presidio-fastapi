@@ -21,14 +21,16 @@ A secure, high-performance FastAPI service for detecting Personally Identifiable
 # Install package
 pip install -e .
 
-# Install required language model
+# Install required dependencies
 python -m spacy download en_core_web_lg
+pip install prometheus-client>=0.17.1
 
 # Create basic .env file
 echo "NLP_ENGINE_NAME=spacy
 SPACY_MODEL_EN=en_core_web_lg
 API_VERSION=v1
-OTEL_ENABLED=false" > .env
+OTEL_ENABLED=false
+PROMETHEUS_MONITORED_PATHS=analyze,analyze/batch" > .env
 
 # Run the service
 presidio-fastapi
