@@ -4,7 +4,14 @@ import logging
 from typing import Callable
 
 from fastapi import FastAPI
-from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, Counter, Gauge, Histogram, generate_latest
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    REGISTRY,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 from starlette.responses import Response
 
 from presidio_fastapi.app.config import settings
@@ -145,8 +152,7 @@ def setup_prometheus(app: FastAPI) -> None:
     api_version = settings.API_VERSION
     monitored_path_suffixes = [
         suffix.strip() for suffix in settings.PROMETHEUS_MONITORED_PATHS.split(",")
-        if suffix.strip()
-    ]
+        if suffix.strip()    ]
     monitored_paths = [f"/api/{api_version}/{suffix}" for suffix in monitored_path_suffixes]
-    
-    logger.info(f"Prometheus metrics setup complete. Monitoring paths: {', '.join(monitored_paths)}")
+    paths_str = ", ".join(monitored_paths)
+    logger.info(f"Prometheus metrics setup complete. Monitoring paths: {paths_str}")

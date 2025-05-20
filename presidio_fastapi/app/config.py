@@ -41,10 +41,9 @@ class Settings(BaseSettings):
     """
 
     # API Version
-    API_VERSION: str = "v1"
-
-    # Prometheus Configuration
-    PROMETHEUS_MONITORED_PATHS: str = "analyze,analyze/batch"  # Comma-separated path suffixes to monitor
+    API_VERSION: str = "v1"    # Prometheus Configuration
+    # Comma-separated path suffixes to monitor
+    PROMETHEUS_MONITORED_PATHS: str = "analyze,analyze/batch"
 
     # OpenTelemetry Configuration
     OTEL_ENABLED: bool = True
