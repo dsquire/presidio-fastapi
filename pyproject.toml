@@ -89,6 +89,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_paths = ["."]  # Added python_paths
+asyncio_default_fixture_loop_scope = "function"  # Set explicit scope for async fixtures
 
 [tool.setuptools]
 packages = [
