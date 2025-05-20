@@ -43,6 +43,7 @@ Documentation at `http://localhost:8000/api/v1/docs`.
 
 - Python 3.12
 - SpaCy language models
+- Prometheus client library
 
 ### Setup Steps
 
@@ -112,6 +113,9 @@ MIN_CONFIDENCE_SCORE=0.5
 ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 REQUESTS_PER_MINUTE=60
 BURST_LIMIT=100
+
+# Prometheus Configuration
+PROMETHEUS_MONITORED_PATHS=analyze,analyze/batch  # Comma-separated path suffixes to monitor
 
 # Logging Configuration
 LOG_LEVEL=INFO
@@ -223,6 +227,7 @@ presidio_fastapi/
 │   ├── config.py         # Application configuration
 │   ├── main.py           # FastAPI application factory
 │   ├── middleware.py     # Security, rate limiting, and metrics middleware  
+│   ├── prometheus.py     # Prometheus metrics integration
 │   └── telemetry.py      # Fault-tolerant OpenTelemetry instrumentation
 ├── __init__.py           # Package initialization
 └── run.py                # Application entry point
@@ -277,7 +282,8 @@ curl -X POST "http://localhost:8000/api/v1/analyze/batch" \
 - Rate limiting (default: 60 requests/minute per IP)
 - IP blocking for abusive clients (burst protection)
 - Security headers (CSP, HSTS, XSS Protection, Content-Type Options)
-- Comprehensive request/response metrics and monitoring
+- Comprehensive Prometheus metrics for monitoring
+- Selective endpoint monitoring for optimized performance
 - Suspicious request detection and tracking
 
 ## Monitoring
@@ -288,11 +294,37 @@ curl -X POST "http://localhost:8000/api/v1/analyze/batch" \
 # Health check
 curl http://localhost:8000/api/v1/health
 
-# Service metrics
+# Prometheus metrics (recommended)
 curl http://localhost:8000/api/v1/metrics
+
+# Legacy JSON metrics (deprecated)
+curl http://localhost:8000/api/v1/metrics-json
 ```
 
-The metrics endpoint provides the following information:
+#### Prometheus Metrics
+
+The service provides metrics in Prometheus format, which is the recommended approach for monitoring. The following metrics are available:
+
+- `http_requests_total`: Total number of HTTP requests (labeled by method, endpoint, status_code)
+- `http_request_duration_seconds`: Duration of HTTP requests in seconds (labeled by method, endpoint)
+- `http_errors_total`: Total count of HTTP errors (labeled by method, endpoint, status_code)
+- `http_active_requests`: Number of currently active HTTP requests (labeled by method, endpoint)
+- `presidio_pii_entities_detected_total`: Total number of PII entities detected (labeled by entity_type, language)
+
+By default, metrics are only collected for specific endpoints (`/analyze` and `/analyze/batch`). This can be configured using the `PROMETHEUS_MONITORED_PATHS` environment variable:
+
+```env
+# Monitor only the analyze endpoint
+PROMETHEUS_MONITORED_PATHS=analyze
+
+# Monitor multiple endpoints (comma-separated)
+PROMETHEUS_MONITORED_PATHS=analyze,analyze/batch,health,status
+```
+
+#### Legacy JSON Metrics (Deprecated)
+
+The legacy JSON metrics endpoint is maintained for backward compatibility but is deprecated. It provides the following information:
+
 - `total_requests`: Total number of requests processed
 - `requests_by_path`: Count of requests per API endpoint path
 - `average_response_time`: Average response time in seconds
@@ -301,7 +333,7 @@ The metrics endpoint provides the following information:
 - `error_counts`: Count of errors by HTTP status code
 - `suspicious_requests`: Count of potentially suspicious requests
 
-Example metrics response:
+Example legacy metrics response:
 ```json
 {
   "total_requests": 42,

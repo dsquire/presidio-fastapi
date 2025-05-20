@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 from presidio_fastapi.app.api.routes import router
 from presidio_fastapi.app.config import settings
@@ -13,11 +14,12 @@ from presidio_fastapi.app.middleware import (
     RateLimiterMiddleware,
     SecurityHeadersMiddleware,
 )
+from presidio_fastapi.app.prometheus import setup_prometheus
 from presidio_fastapi.app.services.analyzer import get_analyzer
 from presidio_fastapi.app.telemetry import setup_telemetry
 
 # Configure logging
-logging.basicConfig(level=settings.log_level)
+logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL.upper()))
 logger = logging.getLogger(__name__)
 
 # Global variable to store the custom OpenAPI schema
@@ -34,26 +36,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
         None
     """
-    await startup_event(app)
-    yield
-    await shutdown_event(app)
-
-
-async def startup_event(app: FastAPI) -> None:
-    """Performs startup activities for the application.
-
-    Initializes telemetry and the PII analyzer.
-
-    Args:
-        app: The FastAPI application instance.
-
-    Raises:
-        Exception: If the analyzer fails to initialize.
-    """
     logger.info("Application startup")
-
-    # Initialize analyzer
     try:
+        # Initialize analyzer
         logger.info("Initializing analyzer...")
         analyzer = get_analyzer()
         app.state.analyzer = analyzer
@@ -62,19 +47,11 @@ async def startup_event(app: FastAPI) -> None:
         logger.error("Failed to initialize analyzer: %s", str(e))
         raise
 
-    logger.info("Application startup complete")
+    yield
 
-
-async def shutdown_event(app: FastAPI) -> None:
-    """Performs shutdown activities for the application.
-
-    Args:
-        app: The FastAPI application instance.
-    """
     logger.info("Application shutdown")
 
 
-# Custom OpenAPI schema generation
 def get_openapi_schema() -> dict[str, Any]:
     """Generates and caches a custom OpenAPI schema.
 
@@ -91,12 +68,8 @@ def get_openapi_schema() -> dict[str, Any]:
     return openapi_schema_cache
 
 
-def create_app(metrics_instance: MetricsMiddleware | None = None) -> FastAPI:
+def create_app() -> FastAPI:
     """Creates and configures the FastAPI application.
-
-    Args:
-        metrics_instance: Optional existing metrics middleware instance to use.
-            If None, a new instance will be created.
 
     Returns:
         FastAPI: The configured FastAPI application instance.
@@ -104,33 +77,27 @@ def create_app(metrics_instance: MetricsMiddleware | None = None) -> FastAPI:
     # Initialize FastAPI with versioned title
     app = FastAPI(
         title=f"Presidio Analyzer API {settings.API_VERSION}",
+        description="FastAPI service for PII detection using Microsoft Presidio",
+        version=settings.API_VERSION,
         docs_url=f"/api/{settings.API_VERSION}/docs",
         redoc_url=f"/api/{settings.API_VERSION}/redoc",
         openapi_url=f"/api/{settings.API_VERSION}/openapi.json",
         lifespan=lifespan,
-    )  # Setup Telemetry early, before other middleware or routes that might depend on it
-    # or conflict with its own middleware additions.
-    try:
-        logger.info("Setting up telemetry in create_app...")
-        setup_telemetry(app)
-    except Exception as e:
-        logger.error(
-            f"Failed to set up telemetry: {str(e)}. Continuing without telemetry."
-        )
-        # Don't let telemetry setup failure prevent app startup
+    )
 
-    # Initialize metrics middleware first since others might generate metrics
-    if metrics_instance is None:
-        # Create a new metrics middleware instance
-        metrics_instance = MetricsMiddleware(None)  # Don't pass app yet
+    # Setup OpenTelemetry early, before other middleware
+    logger.info("Setting up telemetry...")
+    setup_telemetry(app)
 
-    # Add the middleware to the app
-    app.add_middleware(MetricsMiddleware, metrics=metrics_instance)
+    # Setup Prometheus metrics
+    logger.info("Setting up Prometheus metrics...")
+    setup_prometheus(app)
 
-    # Make metrics accessible through app.state
-    app.state.metrics = metrics_instance
+    # Initialize metrics middleware for JSON metrics endpoint (legacy)
+    metrics_middleware = MetricsMiddleware(app)
+    app.state.metrics = metrics_middleware
 
-    # Initialize security middleware
+    # Add security middleware
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RateLimiterMiddleware)
 
@@ -140,11 +107,15 @@ def create_app(metrics_instance: MetricsMiddleware | None = None) -> FastAPI:
         prefix=f"/api/{settings.API_VERSION}",
     )
 
+    # Legacy JSON metrics endpoint
+    @app.get(f"/api/{settings.API_VERSION}/metrics-json", tags=["Monitoring"])
+    async def get_metrics():
+        return JSONResponse(content=app.state.metrics.get_metrics())
+
     return app
 
 
 app = create_app()
-
 
 if __name__ == "__main__":
     # This block is for development purposes only
@@ -152,7 +123,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "presidio_fastapi.app.main:app",
+        app,
         host=settings.SERVER_HOST,
         port=settings.SERVER_PORT,
         log_level=settings.LOG_LEVEL.lower(),

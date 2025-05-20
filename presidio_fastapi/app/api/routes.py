@@ -14,6 +14,7 @@ from presidio_fastapi.app.models import (
     BatchAnalyzeResponse,
     Entity,
 )
+from presidio_fastapi.app.services.analyzer import analyze_with_metrics
 from presidio_fastapi.app.telemetry import trace_method
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,10 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
             )
 
         logger.info("Analyzing text in %s", request.language)
-        results = analyzer.analyze(
+        
+        # Use the analyzer_with_metrics function instead of calling analyze directly
+        results = analyze_with_metrics(
+            analyzer=analyzer,
             text=request.text,
             language=request.language,
         )
@@ -169,7 +173,9 @@ def _analyze_single_text(
     analyzer: AnalyzerEngine, text: str, language: str
 ) -> list[Entity]:
     try:
-        analyzed = analyzer.analyze(
+        # Use analyze_with_metrics instead of direct analyzer call
+        analyzed = analyze_with_metrics(
+            analyzer=analyzer,
             text=text,
             language=language,
         )
@@ -210,14 +216,17 @@ async def health_check() -> Dict[str, str]:
 
 @router.get(
     "/metrics",
-    summary="Metrics endpoint",
-    response_description="Service metrics data",
+    summary="Metrics endpoint (Legacy JSON format)",
+    response_description="Service metrics data in JSON format",
     status_code=status.HTTP_200_OK,
     tags=["Monitoring"],
+    deprecated=True,
 )
-@trace_method("metrics")
-async def metrics(request: Request) -> Dict[str, Any]:
-    """Get service metrics.
+@trace_method("metrics_json")
+async def metrics_json(request: Request) -> Dict[str, Any]:
+    """Get service metrics in JSON format (Legacy endpoint).
+    
+    This endpoint is deprecated. Use /metrics endpoint for Prometheus format metrics.
 
     Args:
         request: FastAPI request object to access state.

@@ -37,10 +37,14 @@ class Settings(BaseSettings):
         ENTITY_MAPPING: Mapping of Presidio entities.
         CONTEXT_SIMILARITY_THRESHOLD: Similarity threshold for context-aware enhancer.
         CONTEXT_MAX_DISTANCE: Maximum word distance for context search.
+        PROMETHEUS_MONITORED_PATHS: List of paths to monitor with Prometheus metrics.
     """
 
     # API Version
     API_VERSION: str = "v1"
+
+    # Prometheus Configuration
+    PROMETHEUS_MONITORED_PATHS: str = "analyze,analyze/batch"  # Comma-separated path suffixes to monitor
 
     # OpenTelemetry Configuration
     OTEL_ENABLED: bool = True

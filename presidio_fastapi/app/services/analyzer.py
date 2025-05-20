@@ -3,8 +3,11 @@
 import logging
 from functools import lru_cache
 from pathlib import Path
+from typing import List, Optional
 
-from presidio_analyzer import AnalyzerEngine, AnalyzerEngineProvider
+from presidio_analyzer import AnalyzerEngine, AnalyzerEngineProvider, RecognizerResult
+
+from presidio_fastapi.app.prometheus import track_pii_entity
 
 logger = logging.getLogger(__name__)
 # Set Presidio's logger to INFO level to suppress debug messages
@@ -37,3 +40,29 @@ def get_analyzer() -> AnalyzerEngine:
         logger.error("Error creating analyzer: %s", str(e))
         logger.exception(e)
         raise
+
+
+def analyze_with_metrics(
+    analyzer: AnalyzerEngine,
+    text: str,
+    language: str,
+    **kwargs
+) -> List[RecognizerResult]:
+    """Analyzes text for PII and records metrics.
+    
+    Args:
+        analyzer: The AnalyzerEngine instance
+        text: The text to analyze
+        language: The language code
+        **kwargs: Additional arguments to pass to the analyzer
+        
+    Returns:
+        List of RecognizerResult objects
+    """
+    results = analyzer.analyze(text=text, language=language, **kwargs)
+    
+    # Record metrics for each detected entity
+    for result in results:
+        track_pii_entity(result.entity_type, language)
+        
+    return results
