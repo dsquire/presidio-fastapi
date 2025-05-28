@@ -1,5 +1,6 @@
 """Initialize package."""
 
-from presidio_fastapi.app.main import app, create_app
+# Note: Imports removed to prevent circular import issues
+# Import app and create_app directly from main module when needed
 
-__all__ = ["app", "create_app"]
+__all__ = []

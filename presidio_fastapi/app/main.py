@@ -14,7 +14,7 @@ from presidio_fastapi.app.middleware import (
 )
 from presidio_fastapi.app.prometheus import setup_prometheus
 from presidio_fastapi.app.services.analyzer import get_analyzer
-from presidio_fastapi.app.telemetry import setup_telemetry
+from presidio_fastapi.app.telemetry import setup_telemetry, shutdown_telemetry
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL.upper()))
@@ -48,6 +48,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     logger.info("Application shutdown")
+    # Properly shutdown telemetry resources
+    shutdown_telemetry()
 
 
 def get_openapi_schema() -> dict[str, Any]:

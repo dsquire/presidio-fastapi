@@ -37,12 +37,27 @@ def disable_telemetry(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OTEL_METRIC_EXPORT_INTERVAL", "0")
     monkeypatch.setenv("OTEL_METRIC_EXPORT", "none")
 
-    # Mock the telemetry setup function using monkeypatch
+    # Mock the telemetry setup and shutdown functions using monkeypatch
     from unittest.mock import MagicMock
 
     from presidio_fastapi.app import telemetry
 
-    monkeypatch.setattr(telemetry, "setup_telemetry", MagicMock())
+    # Create a better mock that doesn't create real telemetry resources
+    mock_setup = MagicMock()
+    mock_shutdown = MagicMock()
+    
+    monkeypatch.setattr(telemetry, "setup_telemetry", mock_setup)
+    monkeypatch.setattr(telemetry, "shutdown_telemetry", mock_shutdown)
+    
+    # Also mock the config settings to ensure OTEL_ENABLED is False
+    from presidio_fastapi.app.config import settings
+    monkeypatch.setattr(settings, "OTEL_ENABLED", False)
+    
+    # Reset telemetry global state to prevent cross-test contamination
+    # Use direct assignment to ensure proper state reset
+    telemetry._tracer_provider = None
+    telemetry._span_processors.clear()
+    telemetry._is_setup_complete = False
 
 
 @pytest.fixture(scope="session")
