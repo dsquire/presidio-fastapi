@@ -39,4 +39,4 @@ Please perform a comprehensive code review and analysis of this Python project, 
 - Inline comments quality
 - README and setup instructions
 
-Please provide specific examples from the codebase and reference relevant Python best practices or PEPs where applicable. Include code snippets demonstrating recommended improvements.
+Write a bullet list of actions to take ordered from most impactful to least impactful.

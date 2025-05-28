@@ -35,34 +35,30 @@ recognizer_registry:
         - language: en
           context: [phone, number, telephone, fax]
         - language: es
-          context: [teléfono, número, fax]
-
-    # Custom recognizers
-    - name: "employee_id"
+          context: [teléfono, número, fax]    # Custom recognizers
+    - name: "EmployeeIdRecognizer"
       supported_entity: "EMPLOYEE_ID"
-      type: regex
+      type: custom
       patterns:
         - name: "standard_employee_id"
           regex: "EMP\\d{6}"  # Matches EMP followed by 6 digits
           score: 0.85
-      context:
-        - "employee"
-        - "id"
-        - "number"
-      supported_language: "en"
+      supported_languages:
+        - language: en
+          context: [employee, id, number, emp]
+      enabled: true
 
-    - name: "project_code"
+    - name: "ProjectCodeRecognizer"
       supported_entity: "PROJECT_CODE"
-      type: regex
+      type: custom
       patterns:
         - name: "internal_project"
           regex: "PRJ-[A-Z]{2}-\\d{4}"  # Matches PRJ-XX-1234 format
           score: 0.9
-      context:
-        - "project"
-        - "code"
-        - "reference"
-      supported_language: "en"
+      supported_languages:
+        - language: en
+          context: [project, code, reference, prj]
+      enabled: true
 
 # NLP Engine configuration
 nlp_configuration:

@@ -137,7 +137,9 @@ Fine-tune context-aware PII detection with:
 
 ## Custom Recognizers
 
-You can configure custom recognizers using YAML configuration without writing any code. The configuration file is located at `config/recognizers.yaml`.
+You can configure custom recognizers using YAML configuration without writing any code. The configuration file is located at `config/recognizers.yaml`. 
+
+This implementation uses Microsoft Presidio's native `AnalyzerEngineProvider` configuration format for robust and reliable custom recognizer loading.
 
 ### Example Configuration
 
@@ -147,64 +149,83 @@ recognizer_registry:
   supported_languages:
     - en
     - es
+  global_regex_flags: 26  # Case insensitive and unicode
   recognizers:
-    # Custom regex-based recognizer
-    - name: "employee_id"
+    # Custom pattern-based recognizer
+    - name: "EmployeeIdRecognizer"
       supported_entity: "EMPLOYEE_ID"
-      type: regex
+      type: custom
       patterns:
         - name: "standard_employee_id"
           regex: "EMP\\d{6}"  # Matches EMP followed by 6 digits
           score: 0.85
-      context:
-        - "employee"
-        - "id"
-        - "number"
-      supported_language: "en"
+      supported_languages:
+        - language: en
+          context: [employee, id, number, emp]
+      enabled: true
 
-    # Deny list based recognizer
-    - name: "project_code"
+    # Custom project code recognizer
+    - name: "ProjectCodeRecognizer"
       supported_entity: "PROJECT_CODE"
-      type: regex
+      type: custom
       patterns:
         - name: "internal_project"
           regex: "PRJ-[A-Z]{2}-\\d{4}"  # Matches PRJ-XX-1234 format
           score: 0.9
-      context:
-        - "project"
-        - "code"
-        - "reference"
-      supported_language: "en"
+      supported_languages:
+        - language: en
+          context: [project, code, reference, prj]
+      enabled: true
+
+    # Deny list based recognizer example
+    - name: "TitlesRecognizer"
+      supported_entity: "TITLE"
+      type: custom
+      deny_list: [Mr., Mrs., Ms., Miss, Dr., Prof.]
+      deny_list_score: 1.0
+      supported_languages:
+        - language: en
+          context: [title, name]
+      enabled: true
 ```
 
 ### Configuration Options
 
-Each recognizer can have the following options:
+Each custom recognizer supports the following parameters:
 
-- `name`: Unique identifier for the recognizer
-- `supported_entity`: The type of entity this recognizer detects
-- `type`: Type of recognizer (`regex`, `pattern`, `deny_list`, or `predefined`)
+- `name`: Unique identifier for the recognizer (e.g., "EmployeeIdRecognizer")
+- `supported_entity`: The type of entity this recognizer detects (e.g., "EMPLOYEE_ID")
+- `type`: Recognizer type - use `custom` for pattern/regex recognizers or `predefined` for built-in ones
 - `patterns`: List of regex patterns with names and confidence scores
-- `context`: List of context words that improve detection accuracy
-- `supported_language`: Language code this recognizer supports
+- `deny_list`: List of words to detect (alternative to patterns)
+- `deny_list_score`: Confidence score for deny list matches
+- `supported_languages`: List of language configurations with context words
+- `enabled`: Boolean to enable/disable the recognizer
+- `global_regex_flags`: Optional regex flags for this specific recognizer
 
 ### Context Settings
 
-Global context awareness settings can be configured:
+Global context awareness settings can be configured in the `defaults` section:
 
 ```yaml
+# Default settings for all recognizers
 defaults:
   allow_overlap: false
   context:
-    similarity_threshold: 0.65  # How similar context words need to be
-    max_distance: 10           # Maximum word distance for context
+    similarity_threshold: 0.65  # How similar context words need to be (0.0-1.0)
+    max_distance: 10           # Maximum word distance for context search
 ```
+
+Context words help improve detection accuracy by looking for relevant terms near potential PII entities. For example, finding "employee" near "EMP123456" increases confidence that it's an employee ID.
 
 ### Adding New Recognizers
 
 1. Edit `config/recognizers.yaml`
-2. Add your recognizer configuration under the `recognizers` section
-3. Restart the service to apply changes
+2. Add your recognizer configuration under the `recognizer_registry.recognizers` section
+3. Use `type: custom` for pattern-based or deny-list recognizers
+4. Include appropriate context words for your entity type
+5. Set `enabled: true` to activate the recognizer
+6. Restart the service to apply changes
 
 ### Testing Recognizers
 
@@ -213,10 +234,42 @@ You can test your custom recognizers using the API:
 ```bash
 curl -X POST "http://localhost:8000/api/v1/analyze" \
      -H "Content-Type: application/json" \
-     -d '{"text": "Employee EMP123456 is working on project PRJ-AB-1234"}'
+     -d '{"text": "Employee EMP123456 is working on project PRJ-AB-1234", "language": "en"}'
 ```
 
-For more examples and configuration options, see the [Presidio documentation](https://microsoft.github.io/presidio/).
+Expected response:
+```json
+{
+  "entities": [
+    {
+      "entity_type": "EMPLOYEE_ID",
+      "start": 9,
+      "end": 18,
+      "score": 0.85,
+      "text": "EMP123456"
+    },
+    {
+      "entity_type": "PROJECT_CODE", 
+      "start": 41,
+      "end": 52,
+      "score": 0.9,
+      "text": "PRJ-AB-1234"
+    }
+  ]
+}
+```
+
+### Official Documentation
+
+For comprehensive information about custom recognizers, including advanced patterns, validation logic, and best practices, refer to the official Microsoft Presidio documentation:
+
+- **[Adding Custom Recognizers](https://microsoft.github.io/presidio/analyzer/adding_recognizers/)** - Complete guide to extending Presidio
+- **[Recognizer Registry Configuration](https://microsoft.github.io/presidio/analyzer/recognizer_registry_provider/)** - YAML configuration reference
+- **[Pattern Recognizer Development](https://microsoft.github.io/presidio/tutorial/02_regex/)** - Tutorial on regex-based recognizers
+- **[No-Code Configuration](https://microsoft.github.io/presidio/tutorial/08_no_code/)** - YAML-based recognizer setup
+- **[Best Practices](https://microsoft.github.io/presidio/analyzer/developing_recognizers/)** - Guidelines for effective PII detection
+
+For more examples and advanced configuration options, see the [official Presidio documentation](https://microsoft.github.io/presidio/).
 
 ## Project Structure
 
