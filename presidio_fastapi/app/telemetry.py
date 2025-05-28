@@ -3,7 +3,6 @@
 import logging
 import socket
 import uuid
-from collections.abc import Awaitable, Callable
 from functools import wraps
 from typing import Any, Optional
 
@@ -60,6 +59,11 @@ def _is_collector_available(host: str, port: int, timeout: float = 0.5) -> bool:
         return False
 
 
+def test_function():
+    """Simple test function to verify module is working."""
+    return "Module is working"
+
+
 def shutdown_telemetry():
     """Properly shutdown OpenTelemetry components to prevent resource leaks."""
     global _tracer_provider, _span_processors, _is_setup_complete
@@ -102,7 +106,9 @@ def setup_telemetry(app: FastAPI):
     # Check if a tracer provider is already set (avoid override warnings)
     existing_provider = trace.get_tracer_provider()
     if hasattr(existing_provider, 'add_span_processor'):
-        logger.warning("TracerProvider already exists, skipping telemetry setup to avoid conflicts")
+        logger.warning(
+            "TracerProvider already exists, skipping telemetry setup to avoid conflicts"
+        )
         return
 
     try:
@@ -135,15 +141,21 @@ def setup_telemetry(app: FastAPI):
         if has_endpoint:
             try:
                 endpoint = settings.OTEL_EXPORTER_OTLP_ENDPOINT
-                endpoint_parts = endpoint.replace("http://", "").replace("https://", "").split(":")
+                endpoint_parts = (
+                    endpoint.replace("http://", "").replace("https://", "").split(":")
+                )
                 collector_host = endpoint_parts[0]
-                collector_port = int(endpoint_parts[1]) if len(endpoint_parts) > 1 else 4317
+                collector_port = (
+                    int(endpoint_parts[1]) if len(endpoint_parts) > 1 else 4317
+                )
                 
                 # Check if collector is available before attempting to connect
                 collector_available = _is_collector_available(collector_host, collector_port)
                 
                 if collector_available:
-                    logger.info(f"OTLP collector is available at {collector_host}:{collector_port}")
+                    logger.info(
+                        f"OTLP collector is available at {collector_host}:{collector_port}"
+                    )
                     
                     # Create OTLP exporter with fast timeout
                     otlp_exporter = OTLPSpanExporter(
@@ -162,13 +174,18 @@ def setup_telemetry(app: FastAPI):
                     _tracer_provider.add_span_processor(span_processor)
                     _span_processors.append(span_processor)
                 else:
-                    logger.warning(f"OTLP collector not available at {collector_host}:{collector_port}. Using console exporter.")
+                    logger.warning(
+                        f"OTLP collector not available at {collector_host}:{collector_port}. "
+                        "Using console exporter."
+                    )
                     console_exporter = ConsoleSpanExporter()
                     console_processor = BatchSpanProcessor(console_exporter)
                     _tracer_provider.add_span_processor(console_processor)
                     _span_processors.append(console_processor)
             except Exception as e:
-                logger.warning(f"Failed to configure OTLP exporter: {e!s}. Using console exporter.")
+                logger.warning(
+                    f"Failed to configure OTLP exporter: {e!s}. Using console exporter."
+                )
                 console_exporter = ConsoleSpanExporter()
                 console_processor = BatchSpanProcessor(console_exporter)
                 _tracer_provider.add_span_processor(console_processor)
