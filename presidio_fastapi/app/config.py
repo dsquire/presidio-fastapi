@@ -156,7 +156,9 @@ class Settings(BaseSettings):
         return {
             "nlp_engine_name": self.NLP_ENGINE_NAME,
             "models": models,
-        }    @property
+        }
+
+    @property
     def log_level(self) -> int:
         """Convert the string log level from settings to a logging constant.
 
