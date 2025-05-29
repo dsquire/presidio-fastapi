@@ -5,7 +5,7 @@ from functools import lru_cache
 from typing import Any
 
 from pydantic import model_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -156,9 +156,7 @@ class Settings(BaseSettings):
         return {
             "nlp_engine_name": self.NLP_ENGINE_NAME,
             "models": models,
-        }
-
-    @property
+        }    @property
     def log_level(self) -> int:
         """Convert the string log level from settings to a logging constant.
 
@@ -169,16 +167,7 @@ class Settings(BaseSettings):
         """
         return getattr(logging, self.LOG_LEVEL.upper(), logging.INFO)
 
-    class Config:
-        """Pydantic configuration class for Settings.
-
-        Attributes:
-            env_file (str): The name of the environment file to load (e.g., ".env").
-            case_sensitive (bool): Whether environment variable names are case-sensitive.
-        """
-
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 
 @lru_cache()

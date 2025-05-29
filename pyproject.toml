@@ -88,8 +88,16 @@ exclude = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-python_paths = ["."]  # Added python_paths
+pythonpath = ["."]  # Added pythonpath for module discovery
 asyncio_default_fixture_loop_scope = "function"  # Set explicit scope for async fixtures
+filterwarnings = [
+    # Ignore click deprecation warnings from external dependencies (spacy, weasel)
+    "ignore:Importing 'parser.split_arg_string' is deprecated.*:DeprecationWarning",
+    # Ignore other common third-party deprecation warnings that we can't control
+    "ignore::DeprecationWarning:click.*",
+    "ignore::DeprecationWarning:spacy.*",
+    "ignore::DeprecationWarning:weasel.*",
+]
 
 [tool.setuptools]
 packages = [
