@@ -7,7 +7,7 @@ from http import HTTPStatus
 from unittest.mock import Mock
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.testclient import TestClient
 
 from presidio_fastapi.app.middleware import (
@@ -155,10 +155,8 @@ def test_rate_limiter_blocked_ip_cleanup() -> None:
     # Create a mock request
     mock_request = Mock()
     mock_request.client = Mock()
-    mock_request.client.host = "test_ip"
-
-    # Create a mock call_next function
-    async def mock_call_next(request):
+    mock_request.client.host = "test_ip"    # Create a mock call_next function
+    async def mock_call_next(request: Request) -> Response:
         mock_response = Mock()
         mock_response.headers = {}
         return mock_response
@@ -387,10 +385,9 @@ def test_rate_limiter_cleanup_expired_blocked_ips() -> None:
 
     # Make a request from the expired IP - this should trigger cleanup
     mock_request = Mock()
-    mock_request.client = Mock()
-    mock_request.client.host = "expired_ip"
+    mock_request.client = Mock()    mock_request.client.host = "expired_ip"
 
-    async def mock_call_next(request):
+    async def mock_call_next(request: Request) -> Response:
         mock_response = Mock()
         mock_response.headers = {}
         return mock_response
@@ -442,11 +439,11 @@ def test_rate_limiter_blocked_ip_response() -> None:
     asyncio.set_event_loop(loop)
     try:
         response = loop.run_until_complete(test_rate_limiter.dispatch(mock_request, mock_call_next))
-        assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS
-        # Test that retry_after is included in response (lines 85-95)
+        assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS        # Test that retry_after is included in response (lines 85-95)
         import json
 
-        response_content = json.loads(response.body)
+        response_body = response.body.decode() if isinstance(response.body, bytes) else response.body
+        response_content = json.loads(response_body)
         assert "retry_after" in response_content
     finally:
         loop.close()
@@ -533,12 +530,12 @@ def test_rate_limiter_rate_limit_exceeded() -> None:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        response = loop.run_until_complete(test_rate_limiter.dispatch(mock_request, mock_call_next))
-        # Should return 429 due to rate limit (lines 117-125)
+        response = loop.run_until_complete(test_rate_limiter.dispatch(mock_request, mock_call_next))        # Should return 429 due to rate limit (lines 117-125)
         assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS
         import json
 
-        response_content = json.loads(response.body)
+        response_body = response.body.decode() if isinstance(response.body, bytes) else response.body
+        response_content = json.loads(response_body)
         assert "retry_after" in response_content
     finally:
         loop.close()

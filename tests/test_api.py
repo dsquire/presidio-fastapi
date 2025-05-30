@@ -83,7 +83,7 @@ def test_analyze_endpoint_analyzer_unavailable(client: TestClient) -> None:
     Args:
         client: FastAPI test client for making requests.
     """
-    with patch.object(client.app.state, "analyzer", None):
+    with patch.object(client.app.state, "analyzer", None):  # type: ignore[attr-defined]
         response = client.post(
             "/api/v1/analyze",
             json={
@@ -174,7 +174,7 @@ def test_batch_analyze_endpoint_analyzer_unavailable(client: TestClient) -> None
     Args:
         client: FastAPI test client for making requests.
     """
-    with patch.object(client.app.state, "analyzer", None):
+    with patch.object(client.app.state, "analyzer", None):  # type: ignore[attr-defined]
         response = client.post(
             "/api/v1/analyze/batch",
             json={
