@@ -377,15 +377,13 @@ def test_rate_limiter_cleanup_expired_blocked_ips() -> None:
         requests_per_minute=10,
         burst_limit=5,
         block_duration=1,
-    )
-
-    # Add an expired blocked IP
+    )    # Add an expired blocked IP
     test_rate_limiter.blocked_ips["expired_ip"] = past_time
     test_rate_limiter.blocked_ips["valid_ip"] = now + timedelta(seconds=10)
-
     # Make a request from the expired IP - this should trigger cleanup
     mock_request = Mock()
-    mock_request.client = Mock()    mock_request.client.host = "expired_ip"
+    mock_request.client = Mock()
+    mock_request.client.host = "expired_ip"
 
     async def mock_call_next(request: Request) -> Response:
         mock_response = Mock()
@@ -429,20 +427,23 @@ def test_rate_limiter_blocked_ip_response() -> None:
     mock_request.client = Mock()
     mock_request.client.host = "blocked_ip"
 
-    async def mock_call_next(request):
+    async def mock_call_next(request: Request) -> Response:
         mock_response = Mock()
         mock_response.headers = {}
-        return mock_response
-
-    # Test that the blocked IP gets a 429 response
+        return mock_response    # Test that the blocked IP gets a 429 response
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        response = loop.run_until_complete(test_rate_limiter.dispatch(mock_request, mock_call_next))
-        assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS        # Test that retry_after is included in response (lines 85-95)
+        response = loop.run_until_complete(
+            test_rate_limiter.dispatch(mock_request, mock_call_next)
+        )
+        assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS
+        # Test that retry_after is included in response (lines 85-95)
         import json
 
-        response_body = response.body.decode() if isinstance(response.body, bytes) else response.body
+        response_body = (
+            response.body.decode() if isinstance(response.body, bytes) else response.body
+        )
         response_content = json.loads(response_body)
         assert "retry_after" in response_content
     finally:
@@ -470,7 +471,7 @@ def test_rate_limiter_burst_limit_blocking() -> None:
     mock_request.client = Mock()
     mock_request.client.host = "test_ip"
 
-    async def mock_call_next(request):
+    async def mock_call_next(request: Request) -> Response:
         mock_response = Mock()
         mock_response.headers = {}
         return mock_response
@@ -515,26 +516,29 @@ def test_rate_limiter_rate_limit_exceeded() -> None:
     mock_request.client = Mock()
     mock_request.client.host = "test_ip"
 
-    async def mock_call_next(request):
+    async def mock_call_next(request: Request) -> Response:
         mock_response = Mock()
         mock_response.headers = {}
-        return mock_response
-
-    # Simulate rate limit exceeded (but not burst limit)
+        return mock_response    # Simulate rate limit exceeded (but not burst limit)
     import time
-
     now_ts = time.time()
     # Add exactly requests_per_minute requests in the last minute
-    test_rate_limiter.requests["test_ip"] = [now_ts - 50, now_ts - 30, now_ts - 10]
-
+    test_rate_limiter.requests["test_ip"] = [
+        now_ts - 50, now_ts - 30, now_ts - 10
+    ]
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        response = loop.run_until_complete(test_rate_limiter.dispatch(mock_request, mock_call_next))        # Should return 429 due to rate limit (lines 117-125)
+        response = loop.run_until_complete(
+            test_rate_limiter.dispatch(mock_request, mock_call_next)
+        )
+        # Should return 429 due to rate limit (lines 117-125)
         assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS
         import json
 
-        response_body = response.body.decode() if isinstance(response.body, bytes) else response.body
+        response_body = (
+            response.body.decode() if isinstance(response.body, bytes) else response.body
+        )
         response_content = json.loads(response_body)
         assert "retry_after" in response_content
     finally:
@@ -563,7 +567,7 @@ def test_metrics_middleware_exception_handling() -> None:
     mock_request.client = Mock()
     mock_request.client.host = "test_ip"
 
-    async def mock_call_next_error(request):
+    async def mock_call_next_error(request: Request) -> Response:
         raise ValueError("Test error")
 
     # Test exception handling in dispatch method
@@ -594,7 +598,7 @@ def test_metrics_middleware_response_time_tracking() -> None:
     mock_request.client = Mock()
     mock_request.client.host = "test_ip"
 
-    async def mock_call_next_slow(request):
+    async def mock_call_next_slow(request: Request) -> Response:
         # Simulate slow response
         await asyncio.sleep(0.1)
         mock_response = Mock()
@@ -711,7 +715,7 @@ def test_metrics_middleware_suspicious_request_logging() -> None:
     mock_request.client = Mock()
     mock_request.client.host = "suspicious_ip"
 
-    async def mock_call_next(request):
+    async def mock_call_next(request: Request) -> Response:
         mock_response = Mock()
         mock_response.headers = {}
         mock_response.status_code = 200
@@ -748,7 +752,7 @@ def test_metrics_middleware_error_status_code_tracking() -> None:
 
     for status_code in error_codes:
 
-        async def mock_call_next_error(request, code=status_code):
+        async def mock_call_next_error(request: Request, code=status_code) -> Response:
             mock_response = Mock()
             mock_response.headers = {}
             mock_response.status_code = code
