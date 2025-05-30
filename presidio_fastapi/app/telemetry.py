@@ -67,12 +67,12 @@ def test_function() -> str:
 def shutdown_telemetry() -> None:
     """Properly shutdown OpenTelemetry components to prevent resource leaks."""
     global _tracer_provider, _span_processors, _is_setup_complete
-    
+
     if not _is_setup_complete:
         return
-        
+
     logger.info("Shutting down OpenTelemetry components...")
-    
+
     # Shutdown all span processors
     for processor in _span_processors:
         try:
@@ -80,19 +80,19 @@ def shutdown_telemetry() -> None:
             logger.debug("Span processor shutdown completed")
         except Exception as e:
             logger.warning(f"Error shutting down span processor: {e}")
-    
+
     # Clear global state
     _span_processors.clear()
     _tracer_provider = None
     _is_setup_complete = False
-    
+
     logger.info("OpenTelemetry shutdown completed")
 
 
 def setup_telemetry(app: FastAPI) -> None:
     """Set up OpenTelemetry tracing for the FastAPI application."""
     global _tracer_provider, _span_processors, _is_setup_complete
-    
+
     # Early return if telemetry is disabled
     if not settings.OTEL_ENABLED:
         logger.info("OpenTelemetry instrumentation is disabled")
@@ -102,13 +102,11 @@ def setup_telemetry(app: FastAPI) -> None:
     if _is_setup_complete:
         logger.debug("OpenTelemetry already configured, skipping setup")
         return
-        
+
     # Check if a tracer provider is already set (avoid override warnings)
     existing_provider = trace.get_tracer_provider()
-    if hasattr(existing_provider, 'add_span_processor'):
-        logger.warning(
-            "TracerProvider already exists, skipping telemetry setup to avoid conflicts"
-        )
+    if hasattr(existing_provider, "add_span_processor"):
+        logger.warning("TracerProvider already exists, skipping telemetry setup to avoid conflicts")
         return
 
     try:
@@ -121,9 +119,7 @@ def setup_telemetry(app: FastAPI) -> None:
         )
 
         # Configure sampling strategy
-        sampler = ParentBased(
-            root=TraceIdRatioBased(settings.OTEL_TRACES_SAMPLER_ARG)
-        )
+        sampler = ParentBased(root=TraceIdRatioBased(settings.OTEL_TRACES_SAMPLER_ARG))
 
         # Create and configure tracer provider
         _tracer_provider = TracerProvider(
@@ -134,43 +130,36 @@ def setup_telemetry(app: FastAPI) -> None:
 
         # Configure OTLP exporter with proper error handling
         has_endpoint = (
-            settings.OTEL_EXPORTER_OTLP_ENDPOINT
-            and settings.OTEL_EXPORTER_OTLP_ENDPOINT.strip()
+            settings.OTEL_EXPORTER_OTLP_ENDPOINT and settings.OTEL_EXPORTER_OTLP_ENDPOINT.strip()
         )
-        
+
         if has_endpoint:
             try:
                 endpoint = settings.OTEL_EXPORTER_OTLP_ENDPOINT
-                endpoint_parts = (
-                    endpoint.replace("http://", "").replace("https://", "").split(":")
-                )
+                endpoint_parts = endpoint.replace("http://", "").replace("https://", "").split(":")
                 collector_host = endpoint_parts[0]
-                collector_port = (
-                    int(endpoint_parts[1]) if len(endpoint_parts) > 1 else 4317
-                )
-                
+                collector_port = int(endpoint_parts[1]) if len(endpoint_parts) > 1 else 4317
+
                 # Check if collector is available before attempting to connect
                 collector_available = _is_collector_available(collector_host, collector_port)
-                
+
                 if collector_available:
-                    logger.info(
-                        f"OTLP collector is available at {collector_host}:{collector_port}"
-                    )
-                    
+                    logger.info(f"OTLP collector is available at {collector_host}:{collector_port}")
+
                     # Create OTLP exporter with fast timeout
                     otlp_exporter = OTLPSpanExporter(
                         endpoint=endpoint,
                         insecure=not settings.OTLP_SECURE,
                         timeout=3,
                     )
-                    
+
                     span_processor = BatchSpanProcessor(
                         otlp_exporter,
                         max_export_batch_size=512,
                         schedule_delay_millis=5000,
                         max_queue_size=2048,
                     )
-                    
+
                     _tracer_provider.add_span_processor(span_processor)
                     _span_processors.append(span_processor)
                 else:
@@ -183,9 +172,7 @@ def setup_telemetry(app: FastAPI) -> None:
                     _tracer_provider.add_span_processor(console_processor)
                     _span_processors.append(console_processor)
             except Exception as e:
-                logger.warning(
-                    f"Failed to configure OTLP exporter: {e!s}. Using console exporter."
-                )
+                logger.warning(f"Failed to configure OTLP exporter: {e!s}. Using console exporter.")
                 console_exporter = ConsoleSpanExporter()
                 console_processor = BatchSpanProcessor(console_exporter)
                 _tracer_provider.add_span_processor(console_processor)
@@ -197,7 +184,7 @@ def setup_telemetry(app: FastAPI) -> None:
             console_processor = BatchSpanProcessor(console_exporter)
             _tracer_provider.add_span_processor(console_processor)
             _span_processors.append(console_processor)
-            
+
         # Instrument FastAPI with request hooks
         logger.info("Instrumenting FastAPI application with OpenTelemetry")
         FastAPIInstrumentor.instrument_app(
@@ -205,7 +192,7 @@ def setup_telemetry(app: FastAPI) -> None:
             excluded_urls=settings.OTEL_PYTHON_FASTAPI_EXCLUDED_URLS,
             server_request_hook=_enrich_span_with_request_details,
         )
-        
+
         # Mark setup as complete
         _is_setup_complete = True
         logger.info("OpenTelemetry instrumentation configured successfully")
@@ -216,9 +203,10 @@ def setup_telemetry(app: FastAPI) -> None:
 
 
 def trace_method(
-    name: Optional[str] = None
+    name: Optional[str] = None,
 ) -> Callable[[Callable[..., Awaitable[Any]]], Callable[..., Awaitable[Any]]]:
     """Decorator to add OpenTelemetry tracing to an async method."""
+
     def decorator(func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -249,4 +237,5 @@ def trace_method(
                     raise
 
         return wrapper
+
     return decorator

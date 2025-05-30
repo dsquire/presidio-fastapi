@@ -7,6 +7,4 @@ from .entity import Entity
 
 class AnalyzeResponse(BaseModel):
     entities: list[Entity] = Field(..., description="List of detected entities")
-    cached: bool = Field(
-        default=False, description="Whether this result was from cache"
-    )
+    cached: bool = Field(default=False, description="Whether this result was from cache")

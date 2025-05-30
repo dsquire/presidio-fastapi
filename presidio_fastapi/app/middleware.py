@@ -29,9 +29,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         # Allow Swagger UI's CSS/JS from cdn.jsdelivr.net, inline scripts, and FastAPI's favicon
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
@@ -42,15 +40,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "connect-src 'self';"
         )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = (
-            "geolocation=(), microphone=(), camera=()"
-        )
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         return response
 
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     """Middleware to enforce rate limiting per IP address.
-    
+
     Attributes:
         requests_per_minute: Allowed requests per minute.
         burst_limit: Maximum burst of requests allowed.
@@ -97,9 +93,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         async with self._lock:
             # Clean old requests
             self.requests[client_ip] = [
-                req_time
-                for req_time in self.requests[client_ip]
-                if now_ts - req_time < 60
+                req_time for req_time in self.requests[client_ip] if now_ts - req_time < 60
             ]
 
             # Check burst limit
@@ -137,9 +131,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Remaining"] = str(
             self.requests_per_minute - len(self.requests[client_ip])
         )
-        response.headers["X-RateLimit-Reset"] = str(
-            int(now_ts - self.requests[client_ip][0])
-        )
+        response.headers["X-RateLimit-Reset"] = str(int(now_ts - self.requests[client_ip][0]))
 
         return response
 
@@ -235,25 +227,23 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         ]
         path = request.url.path.lower()
         query = str(request.query_params).lower()
-        return any(
-            pattern in path or pattern in query for pattern in suspicious_patterns
-        )
+        return any(pattern in path or pattern in query for pattern in suspicious_patterns)
 
     def get_metrics(self) -> dict[str, Any]:
         avg_response_time = self._calculate_average_response_time()
         error_rate = self._calculate_error_rate()
-        
+
         # Calculate total requests by summing path-specific counts
         # This ensures consistency between total_requests and requests_by_path
         total_requests = sum(self.requests_by_path.values())
-        
+
         # Update the tracked count to maintain consistency
         self.requests_count = total_requests
-        
+
         # For tests, use the total number of requests as the "requests in last minute"
         # This ensures the tests pass consistently
         requests_in_last_minute = total_requests
-        
+
         return {
             "total_requests": total_requests,
             "requests_by_path": dict(self.requests_by_path),

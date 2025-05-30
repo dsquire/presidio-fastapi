@@ -87,7 +87,7 @@ def create_app() -> FastAPI:
 
     # Setup OpenTelemetry early, before other middleware
     logger.info("Setting up telemetry...")
-    setup_telemetry(app)    # Setup Prometheus metrics
+    setup_telemetry(app)  # Setup Prometheus metrics
     logger.info("Setting up Prometheus metrics...")
     setup_prometheus(app)
 
