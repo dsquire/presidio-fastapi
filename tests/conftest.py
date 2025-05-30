@@ -91,5 +91,22 @@ def client(app_with_lifespan: FastAPI) -> TestClient:
     Returns:
         TestClient: A configured test client for making requests.
     """
+    # Mock the analyzer in app state with proper RecognizerResult objects
+    from unittest.mock import Mock
+
+    from presidio_analyzer import AnalyzerEngine, RecognizerResult
+    
+    mock_analyzer = Mock(spec=AnalyzerEngine)
+    
+    # Create mock results for a typical test
+    mock_results = [
+        RecognizerResult(entity_type="PERSON", start=11, end=19, score=0.85),
+        RecognizerResult(entity_type="EMAIL_ADDRESS", start=33, end=49, score=0.95)
+    ]
+    mock_analyzer.analyze.return_value = mock_results
+    
+    # Set the mocked analyzer in app state
+    app_with_lifespan.state.analyzer = mock_analyzer
+    
     # Initialize test client with the app that has completed lifespan setup
     return TestClient(app_with_lifespan)
