@@ -1,5 +1,6 @@
 """Tests for Prometheus metrics functionality."""
 
+from typing import Any, MutableMapping
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -32,8 +33,15 @@ def test_prometheus_middleware_exception_handling() -> None:
     """Test that PrometheusMiddleware handles exceptions properly."""
     app = FastAPI()
     middleware = PrometheusMiddleware(app)
-      # Mock an exception in the application
-    async def mock_app(scope: dict, receive: callable, send: callable) -> None:
+      # Create proper mock ASGI functions
+    async def mock_receive() -> MutableMapping[str, Any]:
+        return {"type": "http.request", "body": b""}
+    
+    async def mock_send(message: MutableMapping[str, Any]) -> None:
+        pass
+    
+    # Mock an exception in the application
+    async def mock_app(scope: MutableMapping[str, Any], receive: Any, send: Any) -> None:
         if scope["type"] == "http":
             raise ValueError("Test exception")
     
@@ -49,7 +57,7 @@ def test_prometheus_middleware_exception_handling() -> None:
     with pytest.raises(ValueError, match="Test exception"):
         # This will trigger the exception handling in middleware
         import asyncio
-        asyncio.run(middleware(scope, None, None))
+        asyncio.run(middleware(scope, mock_receive, mock_send))
 
 
 def test_track_pii_entity() -> None:
@@ -97,15 +105,20 @@ def test_setup_prometheus_with_app(app: FastAPI) -> None:
     
     # Verify metrics route was added
     assert len(app.routes) == initial_routes_count + 1
-    
-    # Verify the metrics route exists
-    metrics_routes = [r for r in app.routes if "/metrics" in str(r.path)]
+      # Verify the metrics route exists
+    metrics_routes = [r for r in app.routes if "/metrics" in str(r)]
     assert len(metrics_routes) == 1
 
 
 def test_prometheus_middleware_path_filtering() -> None:
     """Test that middleware only processes monitored paths."""
     app = FastAPI()
+      # Create proper mock ASGI functions
+    async def mock_receive() -> MutableMapping[str, Any]:
+        return {"type": "http.request", "body": b""}
+    
+    async def mock_send(message: MutableMapping[str, Any]) -> None:
+        pass
     
     # Mock settings to only monitor specific paths
     with patch("presidio_fastapi.app.prometheus.settings") as mock_settings:
@@ -120,20 +133,28 @@ def test_prometheus_middleware_path_filtering() -> None:
             "path": "/api/v1/health",
             "method": "GET"
         }
-          # Create an async mock app
+        
+        # Create an async mock app
         mock_app = AsyncMock()
         middleware.app = mock_app
         
         import asyncio
-        asyncio.run(middleware(scope_unmonitored, None, None))
+        asyncio.run(middleware(scope_unmonitored, mock_receive, mock_send))
         
         # Verify the original app was called without metrics processing
-        mock_app.assert_called_once_with(scope_unmonitored, None, None)
+        mock_app.assert_called_once_with(scope_unmonitored, mock_receive, mock_send)
 
 
 def test_prometheus_middleware_error_count_on_exception() -> None:
     """Test that error counts are incremented when exceptions occur."""
     app = FastAPI()
+    
+    # Create proper mock ASGI functions
+    async def mock_receive() -> MutableMapping[str, Any]:
+        return {"type": "http.request", "body": b""}
+    
+    async def mock_send(message: MutableMapping[str, Any]) -> None:
+        pass
     
     with patch("presidio_fastapi.app.prometheus.settings") as mock_settings:
         mock_settings.API_VERSION = "v1"
@@ -141,7 +162,9 @@ def test_prometheus_middleware_error_count_on_exception() -> None:
         
         middleware = PrometheusMiddleware(app)
           # Mock an exception in the application
-        async def mock_app_with_exception(scope: dict, receive: callable, send: callable) -> None:
+        async def mock_app_with_exception(
+            scope: MutableMapping[str, Any], receive: Any, send: Any
+        ) -> None:
             raise RuntimeError("Database connection failed")
         
         middleware.app = mock_app_with_exception
@@ -155,14 +178,22 @@ def test_prometheus_middleware_error_count_on_exception() -> None:
         # Test exception handling
         with pytest.raises(RuntimeError, match="Database connection failed"):
             import asyncio
-            asyncio.run(middleware(scope, None, None))
+            asyncio.run(middleware(scope, mock_receive, mock_send))
 
 
 def test_prometheus_middleware_non_http_scope() -> None:
     """Test that middleware handles non-HTTP scopes correctly."""
     app = FastAPI()
     middleware = PrometheusMiddleware(app)
-      # Mock the app with AsyncMock for async compatibility
+    
+    # Create proper mock ASGI functions
+    async def mock_receive() -> MutableMapping[str, Any]:
+        return {"type": "websocket.connect"}
+    
+    async def mock_send(message: MutableMapping[str, Any]) -> None:
+        pass
+    
+    # Mock the app with AsyncMock for async compatibility
     mock_app = AsyncMock()
     middleware.app = mock_app
     
@@ -173,7 +204,7 @@ def test_prometheus_middleware_non_http_scope() -> None:
     }
     
     import asyncio
-    asyncio.run(middleware(websocket_scope, None, None))
+    asyncio.run(middleware(websocket_scope, mock_receive, mock_send))
     
     # Verify the original app was called for non-HTTP requests
-    mock_app.assert_called_once_with(websocket_scope, None, None)
+    mock_app.assert_called_once_with(websocket_scope, mock_receive, mock_send)
