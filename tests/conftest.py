@@ -45,14 +45,15 @@ def disable_telemetry(monkeypatch: pytest.MonkeyPatch) -> None:
     # Create a better mock that doesn't create real telemetry resources
     mock_setup = MagicMock()
     mock_shutdown = MagicMock()
-    
+
     monkeypatch.setattr(telemetry, "setup_telemetry", mock_setup)
     monkeypatch.setattr(telemetry, "shutdown_telemetry", mock_shutdown)
-    
+
     # Also mock the config settings to ensure OTEL_ENABLED is False
     from presidio_fastapi.app.config import settings
+
     monkeypatch.setattr(settings, "OTEL_ENABLED", False)
-    
+
     # Reset telemetry global state to prevent cross-test contamination
     # Use direct assignment to ensure proper state reset
     telemetry._tracer_provider = None
@@ -95,18 +96,18 @@ def client(app_with_lifespan: FastAPI) -> TestClient:
     from unittest.mock import Mock
 
     from presidio_analyzer import AnalyzerEngine, RecognizerResult
-    
+
     mock_analyzer = Mock(spec=AnalyzerEngine)
-    
+
     # Create mock results for a typical test
     mock_results = [
         RecognizerResult(entity_type="PERSON", start=11, end=19, score=0.85),
-        RecognizerResult(entity_type="EMAIL_ADDRESS", start=33, end=49, score=0.95)
+        RecognizerResult(entity_type="EMAIL_ADDRESS", start=33, end=49, score=0.95),
     ]
     mock_analyzer.analyze.return_value = mock_results
-    
+
     # Set the mocked analyzer in app state
     app_with_lifespan.state.analyzer = mock_analyzer
-    
+
     # Initialize test client with the app that has completed lifespan setup
     return TestClient(app_with_lifespan)

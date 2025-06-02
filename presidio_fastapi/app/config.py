@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     """
 
     # API Version
-    API_VERSION: str = "v1"    # Prometheus Configuration
+    API_VERSION: str = "v1"  # Prometheus Configuration
     # Comma-separated path suffixes to monitor
     PROMETHEUS_MONITORED_PATHS: str = "analyze,analyze/batch"
 
@@ -115,11 +115,7 @@ class Settings(BaseSettings):
             A list of allowed CORS origins split from the ALLOWED_ORIGINS setting.
             If no origins are configured, returns an empty list.
         """
-        return [
-            origin.strip()
-            for origin in self.ALLOWED_ORIGINS.split(",")
-            if origin.strip()
-        ]
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
 
     @property
     def nlp_configuration(self) -> dict[str, Any]:
@@ -144,9 +140,7 @@ class Settings(BaseSettings):
                 ],
             }
         """
-        models = [
-            {"lang_code": "en", "model_name": self.SPACY_MODEL_EN.split("#")[0].strip()}
-        ]
+        models = [{"lang_code": "en", "model_name": self.SPACY_MODEL_EN.split("#")[0].strip()}]
         if self.SPACY_MODEL_ES:
             # Strip comments from the Spanish model name
             spanish_model_name = self.SPACY_MODEL_ES.split("#")[0].strip()

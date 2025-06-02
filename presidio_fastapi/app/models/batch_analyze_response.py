@@ -6,6 +6,4 @@ from .analyze_response import AnalyzeResponse
 
 
 class BatchAnalyzeResponse(BaseModel):
-    results: list[AnalyzeResponse] = Field(
-        ..., description="Analysis results for each text"
-    )
+    results: list[AnalyzeResponse] = Field(..., description="Analysis results for each text")

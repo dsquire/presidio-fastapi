@@ -85,7 +85,6 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
             )
 
         logger.info("Analyzing text in %s", request.language)
-        
         # Use the analyzer_with_metrics function instead of calling analyze directly
         results = analyze_with_metrics(
             analyzer=analyzer,
@@ -107,6 +106,9 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
         logger.info("Found %d entities", len(entities))
         return AnalyzeResponse(entities=entities)
 
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is (like 503 Service Unavailable)
+        raise
     except ValueError as e:
         logger.error("Invalid request: %s", str(e))
         raise HTTPException(
@@ -130,25 +132,24 @@ async def analyze_text(request: AnalyzeRequest, req: Request) -> AnalyzeResponse
     tags=["Analyzer"],
 )
 @trace_method("analyze_batch")
-async def analyze_batch(
-    request: BatchAnalyzeRequest, req: Request
-) -> BatchAnalyzeResponse:
+async def analyze_batch(request: BatchAnalyzeRequest, req: Request) -> BatchAnalyzeResponse:
     """Analyze multiple texts for personally identifiable information (PII).
 
     This endpoint uses Microsoft Presidio to detect PII entities in a batch
     of texts provided in the request.
     """
     try:
-        analyzer = _get_analyzer_from_request(req)
-        # Create AnalyzeResponse for each text
+        analyzer = _get_analyzer_from_request(req)  # Create AnalyzeResponse for each text
         results = [
-            AnalyzeResponse(
-                entities=_analyze_single_text(analyzer, text, request.language)
-            )
+            AnalyzeResponse(entities=_analyze_single_text(analyzer, text, request.language))
             for text in request.texts
         ]
+
         logger.info("Processed %d texts in batch", len(results))
         return BatchAnalyzeResponse(results=results)
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is (like 503 Service Unavailable)
+        raise
     except Exception as e:
         logger.exception("Unexpected error during batch analysis")
         raise HTTPException(
@@ -168,9 +169,7 @@ def _get_analyzer_from_request(req: Request) -> AnalyzerEngine:
     return analyzer
 
 
-def _analyze_single_text(
-    analyzer: AnalyzerEngine, text: str, language: str
-) -> list[Entity]:
+def _analyze_single_text(analyzer: AnalyzerEngine, text: str, language: str) -> list[Entity]:
     try:
         # Use analyze_with_metrics instead of direct analyzer call
         analyzed = analyze_with_metrics(
